@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopBoost - Fidélité Digitale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .stamp-active { background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 antialiased min-h-screen flex flex-col">
+
+  <!-- En-tête -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2 cursor-pointer" onclick="showView('portal')">
+        <span class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">S.</span>
+        <span class="font-extrabold text-lg text-white tracking-tight">ShopBoost</span>
+      </div>
+      <button onclick="showView('portal')" class="text-xs font-semibold text-slate-400 hover:text-white transition">
+        ← Changer de profil
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 1. PORTAIL CHOIX PROFIL                    -->
+  <!-- ========================================== -->
+  <section id="view-portal" class="flex-1 flex items-center justify-center p-6">
+    <div class="max-w-md w-full text-center space-y-8">
+      <div>
+        <span class="px-3 py-1 bg-indigo-950 border border-indigo-700 text-indigo-300 text-xs font-bold rounded-full uppercase tracking-wider">
+          Fidélité 100% Mobile
+        </span>
+        <h1 class="text-3xl md:text-4xl font-black text-white mt-4 tracking-tight">
+          Bienvenue sur ShopBoost
+        </h1>
+        <p class="text-xs md:text-sm text-slate-400 mt-2">Choisissez votre espace pour continuer</p>
+      </div>
+
+      <div class="space-y-4">
+        <button onclick="showView('client')" class="w-full p-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl shadow-lg transition text-left flex items-center gap-4">
+          <span class="text-3xl bg-white/10 p-2.5 rounded-xl">📱</span>
+          <div>
+            <h2 class="font-bold text-white text-base">Espace Client</h2>
+            <p class="text-xs text-emerald-100">Afficher mon pass QR & mes tampons</p>
+          </div>
+        </button>
+
+        <button onclick="showView('merchant')" class="w-full p-5 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-2xl shadow-lg transition text-left flex items-center gap-4">
+          <span class="text-3xl bg-white/5 p-2.5 rounded-xl">🏪</span>
+          <div>
+            <h2 class="font-bold text-white text-base">Espace Commerçant</h2>
+            <p class="text-xs text-slate-400">Scanner les clients & offres dès 9,99€</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 2. ESPACE CLIENT                          -->
+  <!-- ========================================== -->
+  <section id="view-client" class="hidden flex-1 flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm space-y-5">
+      
+      <div id="client-auth-card" class="bg-slate-800/90 border border-slate-700 p-6 rounded-3xl shadow-xl">
+        <div class="flex border-b border-slate-700 mb-6">
+          <button id="tab-signup-btn" onclick="toggleAuthTab('signup')" class="flex-1 pb-3 text-center text-xs font-bold text-emerald-400 border-b-2 border-emerald-400">
+            Nouveau client
+          </button>
+          <button id="tab-login-btn" onclick="toggleAuthTab('login')" class="flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white">
+            Déjà un compte
+          </button>
+        </div>
+
+        <!-- Formulaire Inscription -->
+        <form id="form-signup" onsubmit="handleCustomerSignUp(event)" class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Votre Prénom</label>
+            <input id="signup-name" type="text" required placeholder="Ex. Thomas" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Numéro de Téléphone</label>
+            <input id="signup-phone" type="tel" required placeholder="06 12 34 56 78" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Code secret (4 chiffres)</label>
+            <input id="signup-pin" type="password" maxlength="4" pattern="[0-9]{4}" required placeholder="••••" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <button type="submit" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition shadow-lg mt-2">
+            Obtenir mon pass fidélité →
+          </button>
+        </form>
+
+        <!-- Formulaire Connexion -->
+        <form id="form-login" onsubmit="handleCustomerSignIn(event)" class="space-y-4 hidden">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Numéro de Téléphone</label>
+            <input id="login-phone" type="tel" required placeholder="06 12 34 56 78" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Code secret (4 chiffres)</label>
+            <input id="login-pin" type="password" maxlength="4" pattern="[0-9]{4}" required placeholder="••••" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm transition shadow-lg mt-2">
+            Afficher mon pass →
+          </button>
+        </form>
+      </div>
+
+      <!-- Pass Client avec QR code -->
+      <div id="client-card" class="hidden space-y-4">
+        <div class="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 border border-indigo-700/50 p-6 rounded-3xl shadow-2xl text-center">
+          <div class="flex justify-between items-center mb-4 text-left">
+            <div>
+              <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400">Pass Client</span>
+              <h3 id="card-name-display" class="text-base font-black text-white">Client</h3>
+            </div>
+            <span id="card-phone-display" class="font-mono text-xs text-slate-400">06 ** ** **</span>
+          </div>
+
+          <!-- Affichage du QR Code généré -->
+          <div class="p-3 bg-white rounded-2xl inline-block shadow-inner mb-2">
+            <img id="client-qr-image" src="" alt="Mon QR Code" class="w-44 h-44" />
+          </div>
+          <p class="text-xs text-slate-300 font-semibold">Présentez ce QR code au commerçant</p>
+
+          <!-- Grille des 10 tampons -->
+          <div class="grid grid-cols-5 gap-2.5 my-5" id="stamps-grid"></div>
+
+          <!-- Progression -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-[11px] font-bold">
+              <span class="text-slate-400" id="progress-text">0 / 10 tampons</span>
+              <span class="text-amber-400" id="remaining-text">10 restants</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+              <div id="progress-bar" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="reward-banner" class="hidden bg-gradient-to-r from-amber-500 to-amber-600 p-4 rounded-2xl text-slate-950 text-center font-bold text-xs shadow-lg animate-pulse">
+          🎁 Récompense disponible ! Présentez votre QR code au gérant pour récupérer votre cadeau !
+        </div>
+
+        <button onclick="logoutCustomer()" class="text-xs text-slate-500 hover:text-slate-400 block mx-auto pt-2">
+          Se déconnecter
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 3. ESPACE COMMERÇANT & TARIFS             -->
+  <!-- ========================================== -->
+  <section id="view-merchant" class="hidden flex-1 max-w-4xl mx-auto w-full p-4 space-y-8">
+    <div>
+      <div class="text-center mb-6">
+        <span id="billing-badge" class="px-3 py-1 bg-indigo-950 border border-indigo-700 text-indigo-300 text-xs font-bold rounded-full uppercase">
+          14 jours d'essai sans engagement
+        </span>
+        <h2 class="text-2xl md:text-3xl font-black text-white mt-3">Choisissez votre formule ShopBoost</h2>
+        <p class="text-xs md:text-sm text-slate-400 mt-1">Zéro investissement matériel • Fonctionne sur votre smartphone de caisse</p>
+
+        <!-- Sélecteur Mensuel / Annuel -->
+        <div class="mt-6 inline-flex items-center p-1 bg-slate-800 border border-slate-700 rounded-2xl">
+          <button id="billing-monthly-btn" onclick="setBillingCycle('monthly')" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition shadow">
+            Mensuel (14j d'essai)
+          </button>
+          <button id="billing-yearly-btn" onclick="setBillingCycle('yearly')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
+            Annuel (30j d'essai) ✨
+          </button>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+        <!-- Formule Solo -->
+        <div class="bg-slate-800/90 border border-slate-700 p-6 rounded-3xl flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-extrabold uppercase text-slate-400">Offre Solo</span>
+              <span class="text-[10px] bg-slate-700 text-slate-300 font-bold px-2 py-0.5 rounded">1 boutique</span>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span id="solo-price" class="text-3xl font-black text-white">9,99€</span>
+              <span id="solo-period" class="text-xs text-slate-400">/ mois</span>
+            </div>
+            <p id="solo-trial-desc" class="text-xs text-emerald-400 font-bold mt-1">14 jours offerts (0 € aujourd'hui)</p>
+            <ul class="text-xs text-slate-300 space-y-2 mt-4">
+              <li>✓ 1 seul point de vente</li>
+              <li>✓ Cartes clients illimitées</li>
+              <li>✓ Scanner caméra intégré</li>
+            </ul>
+          </div>
+          <a id="solo-btn" href="https://buy.stripe.com/test_3cI9AVb4PfRQbna12wcfK01" class="mt-6 block w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold text-center rounded-xl text-xs transition">
+            Démarrer mes 14j gratuits (Solo) →
+          </a>
+        </div>
+
+        <!-- Formule Multi -->
+        <div class="bg-gradient-to-b from-indigo-950 to-slate-800 border-2 border-indigo-500 p-6 rounded-3xl flex flex-col justify-between relative shadow-xl">
+          <span class="absolute -top-3 right-4 bg-indigo-500 text-white font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full shadow">
+            Conseillé
+          </span>
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-extrabold uppercase text-indigo-400">Offre Multi-Boutiques</span>
+              <span class="text-[10px] bg-indigo-900 text-indigo-300 font-bold px-2 py-0.5 rounded">Multi-points</span>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span id="multi-price" class="text-3xl font-black text-white">14,99€</span>
+              <span id="multi-period" class="text-xs text-slate-400">/ mois</span>
+            </div>
+            <p id="multi-trial-desc" class="text-xs text-emerald-400 font-bold mt-1">14 jours offerts (0 € aujourd'hui)</p>
+            <ul class="text-xs text-slate-200 space-y-2 mt-4">
+              <li>✓ Plusieurs points de vente / caisses</li>
+              <li>✓ Cartes & scans illimités</li>
+              <li>✓ Données clients synchronisées</li>
+            </ul>
+          </div>
+          <a id="multi-btn" href="https://buy.stripe.com/test_14A3cxa0LdJI0IwcLecfK02" class="mt-6 block w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-center rounded-xl text-xs transition shadow-lg shadow-indigo-600/30">
+            Démarrer mes 14j gratuits (Multi) →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scanner Caméra de Caisse -->
+    <div class="bg-slate-800 border border-slate-700 p-6 rounded-3xl max-w-xl mx-auto text-center space-y-4">
+      <h3 class="text-base font-bold text-white">Scanner Caisse Commerçant</h3>
+      <div id="reader-container" class="rounded-2xl overflow-hidden bg-black max-w-xs mx-auto aspect-square flex items-center justify-center border border-slate-700">
+        <div id="reader" class="w-full"></div>
+      </div>
+
+      <div class="flex gap-2 justify-center">
+        <button id="start-scan-btn" onclick="startScanner()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-xs text-white transition">
+          📷 Allumer la caméra
+        </button>
+        <button id="stop-scan-btn" onclick="stopScanner()" class="hidden px-4 py-2.5 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl text-xs text-white transition">
+          Éteindre
+        </button>
+      </div>
+
+      <div id="scan-feedback" class="hidden p-4 rounded-2xl text-left border"></div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 4. LOGIQUE APPLICATIVE                     -->
+  <!-- ========================================== -->
+  <script>
+    const SUPABASE_URL = "https://prdbfryilqhtcrojpoht.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_mZj9GYBc8IJkfaiW3JTmsQ_ZvmCCmKd";
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentCustomer = null;
+    let html5QrCode = null;
+
+    // Liens Stripe paramétrés
+    const STRIPE_LINKS = {
+      solo_monthly: "https://buy.stripe.com/test_3cI9AVb4PfRQbna12wcfK01",
+      multi_monthly: "https://buy.stripe.com/test_14A3cxa0LdJI0IwcLecfK02",
+      solo_yearly: "https://buy.stripe.com/test_14AdRb8WHgVUaj66mQcfK03",
+      multi_yearly: "https://buy.stripe.com/test_14A00l0qbcFEgHubHacfK04"
+    };
+
+    function setBillingCycle(cycle) {
+      const isYearly = cycle === 'yearly';
+
+      document.getElementById('billing-monthly-btn').className = !isYearly 
+        ? "px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition shadow"
+        : "px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition";
+
+      document.getElementById('billing-yearly-btn').className = isYearly 
+        ? "px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition shadow"
+        : "px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition";
+
+      if (isYearly) {
+        document.getElementById('billing-badge').innerText = "30 jours d'essai offerts sur l'annuel";
+        document.getElementById('solo-price').innerText = "99€";
+        document.getElementById('solo-period').innerText = "/ an";
+        document.getElementById('solo-trial-desc').innerText = "30 jours offerts (0 € aujourd'hui)";
+        document.getElementById('solo-btn').href = STRIPE_LINKS.solo_yearly;
+        document.getElementById('solo-btn').innerText = "Démarrer mes 30j gratuits (Solo) →";
+
+        document.getElementById('multi-price').innerText = "149€";
+        document.getElementById('multi-period').innerText = "/ an";
+        document.getElementById('multi-trial-desc').innerText = "30 jours offerts (0 € aujourd'hui)";
+        document.getElementById('multi-btn').href = STRIPE_LINKS.multi_yearly;
+        document.getElementById('multi-btn').innerText = "Démarrer mes 30j gratuits (Multi) →";
+      } else {
+        document.getElementById('billing-badge').innerText = "14 jours d'essai sans engagement";
+        document.getElementById('solo-price').innerText = "9,99€";
+        document.getElementById('solo-period').innerText = "/ mois";
+        document.getElementById('solo-trial-desc').innerText = "14 jours offerts (0 € aujourd'hui)";
+        document.getElementById('solo-btn').href = STRIPE_LINKS.solo_monthly;
+        document.getElementById('solo-btn').innerText = "Démarrer mes 14j gratuits (Solo) →";
+
+        document.getElementById('multi-price').innerText = "14,99€";
+        document.getElementById('multi-period').innerText = "/ mois";
+        document.getElementById('multi-trial-desc').innerText = "14 jours offerts (0 € aujourd'hui)";
+        document.getElementById('multi-btn').href = STRIPE_LINKS.multi_monthly;
+        document.getElementById('multi-btn').innerText = "Démarrer mes 14j gratuits (Multi) →";
+      }
+    }
+
+    function showView(view) {
+      if (html5QrCode && html5QrCode.isScanning) {
+        stopScanner();
+      }
+      document.getElementById('view-portal').classList.add('hidden');
+      document.getElementById('view-merchant').classList.add('hidden');
+      document.getElementById('view-client').classList.add('hidden');
+
+      if (view === 'portal') document.getElementById('view-portal').classList.remove('hidden');
+      if (view === 'merchant') document.getElementById('view-merchant').classList.remove('hidden');
+      if (view === 'client') {
+        document.getElementById('view-client').classList.remove('hidden');
+        checkAutoLogin();
+      }
+    }
+
+    function toggleAuthTab(tab) {
+      const isSignup = tab === 'signup';
+      document.getElementById('form-signup').classList.toggle('hidden', !isSignup);
+      document.getElementById('form-login').classList.toggle('hidden', isSignup);
+
+      document.getElementById('tab-signup-btn').className = isSignup 
+        ? "flex-1 pb-3 text-center text-xs font-bold text-emerald-400 border-b-2 border-emerald-400" 
+        : "flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white";
+
+      document.getElementById('tab-login-btn').className = !isSignup 
+        ? "flex-1 pb-3 text-center text-xs font-bold text-indigo-400 border-b-2 border-indigo-400" 
+        : "flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white";
+    }
+
+    async function handleCustomerSignUp(e) {
+      e.preventDefault();
+      const name = document.getElementById('signup-name').value.trim();
+      const phone = document.getElementById('signup-phone').value.trim();
+      const pin = document.getElementById('signup-pin').value.trim();
+
+      const { data: existing } = await db.from('customers').select('*').eq('phone', phone).maybeSingle();
+      if (existing) {
+        alert("Ce numéro est déjà enregistré ! Connectez-vous sur 'Déjà un compte'.");
+        toggleAuthTab('login');
+        return;
+      }
+
+      const { data, error } = await db.from('customers').insert([{
+        phone: phone,
+        reward_desc: `${name}|${pin}`,
+        stamps: 1
+      }]).select().single();
+
+      if (!error && data) {
+        localStorage.setItem('shopboost_customer_id', data.id);
+        currentCustomer = data;
+        renderCardUI();
+      }
+    }
+
+    async function handleCustomerSignIn(e) {
+      e.preventDefault();
+      const phone = document.getElementById('login-phone').value.trim();
+      const pin = document.getElementById('login-pin').value.trim();
+
+      const { data } = await db.from('customers').select('*').eq('phone', phone).maybeSingle();
+      if (!data) return alert("Compte introuvable !");
+
+      const storedPin = data.reward_desc ? data.reward_desc.split('|')[1] : null;
+      if (storedPin && storedPin !== pin) return alert("Code secret incorrect !");
+
+      localStorage.setItem('shopboost_customer_id', data.id);
+      currentCustomer = data;
+      renderCardUI();
+    }
+
+    async function checkAutoLogin() {
+      const savedId = localStorage.getItem('shopboost_customer_id');
+      if (savedId) {
+        const { data } = await db.from('customers').select('*').eq('id', savedId).maybeSingle();
+        if (data) {
+          currentCustomer = data;
+          renderCardUI();
+          return;
+        }
+      }
+      document.getElementById('client-auth-card').classList.remove('hidden');
+      document.getElementById('client-card').classList.add('hidden');
+    }
+
+    function renderCardUI() {
+      document.getElementById('client-auth-card').classList.add('hidden');
+      document.getElementById('client-card').classList.remove('hidden');
+
+      const name = currentCustomer.reward_desc ? currentCustomer.reward_desc.split('|')[0] : 'Client';
+      document.getElementById('card-name-display').innerText = name;
+      document.getElementById('card-phone-display').innerText = currentCustomer.phone;
+
+      const qrData = `SHOPBOOST_CLIENT:${currentCustomer.id}`;
+      document.getElementById('client-qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`;
+
+      const count = currentCustomer.stamps || 0;
+      const grid = document.getElementById('stamps-grid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= 10; i++) {
+        const isStamped = i <= count;
+        grid.innerHTML += `
+          <div class="h-11 rounded-xl flex items-center justify-center font-black text-xs border ${
+            isStamped 
+              ? 'stamp-active border-amber-300 text-slate-950' 
+              : 'bg-slate-900/60 border-slate-700/80 text-slate-600'
+          }">
+            ${isStamped ? '★' : i}
+          </div>
+        `;
+      }
+
+      const percent = Math.min((count / 10) * 100, 100);
+      document.getElementById('progress-bar').style.width = percent + '%';
+      document.getElementById('progress-text').innerText = `${count} / 10 tampons`;
+      document.getElementById('remaining-text').innerText = `${Math.max(10 - count, 0)} restants`;
+
+      document.getElementById('reward-banner').classList.toggle('hidden', count < 10);
+    }
+
+    function logoutCustomer() {
+      localStorage.removeItem('shopboost_customer_id');
+      currentCustomer = null;
+      checkAutoLogin();
+    }
+
+    // Caméra de caisse
+    async function startScanner() {
+      document.getElementById('start-scan-btn').classList.add('hidden');
+      document.getElementById('stop-scan-btn').classList.remove('hidden');
+
+      html5QrCode = new Html5Qrcode("reader");
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 200 },
+        onScanSuccess
+      );
+    }
+
+    async function stopScanner() {
+      if (html5QrCode) {
+        await html5QrCode.stop();
+        html5QrCode = null;
+      }
+      document.getElementById('start-scan-btn').classList.remove('hidden');
+      document.getElementById('stop-scan-btn').classList.add('hidden');
+    }
+
+    async function onScanSuccess(decodedText) {
+      await stopScanner();
+
+      if (!decodedText.startsWith("SHOPBOOST_CLIENT:")) {
+        alert("QR Code non reconnu.");
+        return;
+      }
+
+      const customerId = decodedText.replace("SHOPBOOST_CLIENT:", "");
+      const { data: customer } = await db.from('customers').select('*').eq('id', customerId).single();
+
+      if (!customer) {
+        alert("Client introuvable !");
+        return;
+      }
+
+      const feedback = document.getElementById('scan-feedback');
+      feedback.classList.remove('hidden');
+      const name = customer.reward_desc ? customer.reward_desc.split('|')[0] : 'Client';
+
+      if (customer.stamps >= 10) {
+        await db.from('customers').update({ stamps: 0, last_visit: new Date() }).eq('id', customer.id);
+        feedback.className = "p-4 rounded-2xl bg-amber-500/20 border-amber-500 text-amber-300";
+        feedback.innerHTML = `
+          <p class="font-black text-sm">🎁 RÉCOMPENSE DISTRIBUÉE</p>
+          <p class="text-xs mt-1">Client : <strong>${name}</strong> (${customer.phone})</p>
+          <p class="text-[11px] text-slate-300 mt-0.5">La carte a été remise à zéro pour un nouveau cycle.</p>
+        `;
+      } else {
+        const newStamps = customer.stamps + 1;
+        await db.from('customers').update({ stamps: newStamps, last_visit: new Date() }).eq('id', customer.id);
+        feedback.className = "p-4 rounded-2xl bg-emerald-500/20 border-emerald-500 text-emerald-300";
+        feedback.innerHTML = `
+          <p class="font-black text-sm">✅ +1 TAMPON AJOUTÉ</p>
+          <p class="text-xs mt-1">Client : <strong>${name}</strong> (${customer.phone})</p>
+          <p class="text-[11px] text-slate-300 mt-0.5">Nouveau solde : <strong>${newStamps} / 10</strong></p>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
