@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopBoost - Fidélité Digitale & Caisse</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .stamp-active { background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 antialiased min-h-screen flex flex-col">
+
+  <!-- En-tête -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2 cursor-pointer" onclick="showView('portal')">
+        <span class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">S.</span>
+        <span class="font-extrabold text-lg text-white tracking-tight">ShopBoost</span>
+      </div>
+      <div id="user-nav-status" class="flex items-center gap-3">
+        <button onclick="showView('portal')" class="text-xs font-semibold text-slate-400 hover:text-white transition">
+          Accueil
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 1. PORTAIL D'ACCUEIL                      -->
+  <!-- ========================================== -->
+  <section id="view-portal" class="flex-1 flex items-center justify-center p-6">
+    <div class="max-w-md w-full text-center space-y-8">
+      <div>
+        <span class="px-3 py-1 bg-indigo-950 border border-indigo-700 text-indigo-300 text-xs font-bold rounded-full uppercase tracking-wider">
+          Fidélité Digitale Sécurisée
+        </span>
+        <h1 class="text-3xl md:text-4xl font-black text-white mt-4 tracking-tight">
+          Bienvenue sur ShopBoost
+        </h1>
+        <p class="text-xs md:text-sm text-slate-400 mt-2">Choisissez votre profil pour commencer</p>
+      </div>
+
+      <div class="space-y-4">
+        <button onclick="showView('client-auth')" class="w-full p-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl shadow-lg transition text-left flex items-center gap-4">
+          <span class="text-3xl bg-white/10 p-2.5 rounded-xl">📱</span>
+          <div>
+            <h2 class="font-bold text-white text-base">Espace Client</h2>
+            <p class="text-xs text-emerald-100">Créer mon pass, valider par email & voir mes points</p>
+          </div>
+        </button>
+
+        <button onclick="showView('merchant-auth')" class="w-full p-5 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-2xl shadow-lg transition text-left flex items-center gap-4">
+          <span class="text-3xl bg-white/5 p-2.5 rounded-xl">🏪</span>
+          <div>
+            <h2 class="font-bold text-white text-base">Espace Commerçant</h2>
+            <p class="text-xs text-slate-400">Inscription commerçant, scanner caisse & offres</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 2. AUTHENTIFICATION CLIENT (EMAIL + MOT DE PASSE) -->
+  <!-- ========================================== -->
+  <section id="view-client-auth" class="hidden flex-1 flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm space-y-5">
+      <div class="bg-slate-800/90 border border-slate-700 p-6 rounded-3xl shadow-xl">
+        <div class="flex border-b border-slate-700 mb-6">
+          <button id="client-tab-signup" onclick="toggleClientAuth('signup')" class="flex-1 pb-3 text-center text-xs font-bold text-emerald-400 border-b-2 border-emerald-400">
+            Nouveau client
+          </button>
+          <button id="client-tab-login" onclick="toggleClientAuth('login')" class="flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white">
+            Déjà inscrit
+          </button>
+        </div>
+
+        <!-- Inscription Client -->
+        <form id="form-client-signup" onsubmit="handleCustomerSignUp(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Prénom</label>
+            <input id="c-signup-name" type="text" required placeholder="Alex" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Téléphone</label>
+            <input id="c-signup-phone" type="tel" required placeholder="06 12 34 56 78" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Email</label>
+            <input id="c-signup-email" type="email" required placeholder="alex@email.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
+            <input id="c-signup-password" type="password" minlength="6" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg mt-2">
+            Créer mon compte & Recevoir le mail de confirmation →
+          </button>
+        </form>
+
+        <!-- Connexion Client -->
+        <form id="form-client-login" onsubmit="handleCustomerSignIn(event)" class="space-y-3 hidden">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Email</label>
+            <input id="c-login-email" type="email" required placeholder="alex@email.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
+            <input id="c-login-password" type="password" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg mt-2">
+            Ouvrir mon pass client →
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 3. TABLEAU DE BORD CLIENT DÉTAILLÉ        -->
+  <!-- ========================================== -->
+  <section id="view-client-dashboard" class="hidden flex-1 max-w-md mx-auto w-full p-4 space-y-4">
+    <!-- Pass Digital -->
+    <div class="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 border border-indigo-700/50 p-6 rounded-3xl shadow-2xl text-center">
+      <div class="flex justify-between items-center mb-4 text-left">
+        <div>
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400">Pass Fidélité</span>
+          <h3 id="client-view-name" class="text-base font-black text-white">Prénom</h3>
+        </div>
+        <span id="client-view-email" class="text-xs text-slate-400 font-mono">email@client.com</span>
+      </div>
+
+      <!-- QR Code Personnel du Client -->
+      <div class="p-3 bg-white rounded-2xl inline-block shadow-inner mb-2">
+        <img id="client-qr-image" src="" alt="Mon QR Code" class="w-44 h-44" />
+      </div>
+      <p class="text-xs text-slate-300 font-semibold">Présentez ce QR code à la caisse du commerce</p>
+
+      <!-- Grille des 10 tampons -->
+      <div class="grid grid-cols-5 gap-2.5 my-5" id="stamps-grid"></div>
+
+      <!-- Progression -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between text-[11px] font-bold">
+          <span class="text-slate-400" id="progress-text">0 / 10 tampons</span>
+          <span class="text-amber-400" id="remaining-text">10 restants</span>
+        </div>
+        <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+          <div id="progress-bar" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Récompense actuelle promise par le commerçant -->
+    <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl">
+      <span class="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider">Votre Cadeau au 10ème tampon</span>
+      <p id="current-reward-desc" class="text-sm font-bold text-white mt-1">1 Café ou Boisson offerte</p>
+    </div>
+
+    <!-- Bannière Récompense prête -->
+    <div id="client-reward-unlocked" class="hidden bg-gradient-to-r from-amber-500 to-amber-600 p-4 rounded-2xl text-slate-950 text-center font-bold text-xs shadow-lg animate-pulse">
+      🎉 Vos 10 tampons sont remplis ! Montrez votre QR code pour récupérer votre cadeau !
+    </div>
+
+    <button onclick="handleSignOut()" class="w-full py-2.5 text-xs text-slate-400 hover:text-white transition">
+      Se déconnecter
+    </button>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 4. AUTHENTIFICATION COMMERÇANT (EMAIL)    -->
+  <!-- ========================================== -->
+  <section id="view-merchant-auth" class="hidden flex-1 flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm space-y-5">
+      <div class="bg-slate-800/90 border border-slate-700 p-6 rounded-3xl shadow-xl">
+        <div class="flex border-b border-slate-700 mb-6">
+          <button id="m-tab-signup" onclick="toggleMerchantAuth('signup')" class="flex-1 pb-3 text-center text-xs font-bold text-indigo-400 border-b-2 border-indigo-400">
+            Créer mon commerce
+          </button>
+          <button id="m-tab-login" onclick="toggleMerchantAuth('login')" class="flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white">
+            Connexion gérant
+          </button>
+        </div>
+
+        <!-- Inscription Commerçant -->
+        <form id="form-merchant-signup" onsubmit="handleMerchantSignUp(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Nom de l'Enseigne / Boutique</label>
+            <input id="m-signup-name" type="text" required placeholder="Boulangerie Centrale" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Email professionnel</label>
+            <input id="m-signup-email" type="email" required placeholder="contact@boulangerie.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
+            <input id="m-signup-password" type="password" minlength="6" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg mt-2">
+            Créer mon compte Commerçant →
+          </button>
+        </form>
+
+        <!-- Connexion Commerçant -->
+        <form id="form-merchant-login" onsubmit="handleMerchantSignIn(event)" class="space-y-3 hidden">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Email</label>
+            <input id="m-login-email" type="email" required placeholder="contact@boulangerie.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
+            <input id="m-login-password" type="password" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500">
+          </div>
+          <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg mt-2">
+            Accéder à ma caisse ShopBoost →
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 5. PAYWALL COMMERÇANT (POST-INSCRIPTION)  -->
+  <!-- ========================================== -->
+  <section id="view-merchant-paywall" class="hidden flex-1 max-w-4xl mx-auto w-full p-4 space-y-8">
+    <div class="text-center">
+      <span class="px-3 py-1 bg-emerald-950 border border-emerald-700 text-emerald-300 text-xs font-bold rounded-full uppercase">
+        Compte & Email vérifiés avec succès
+      </span>
+      <h2 class="text-2xl md:text-3xl font-black text-white mt-3">Activez votre période d'essai pour ouvrir votre caisse</h2>
+      <p class="text-xs md:text-sm text-slate-400 mt-1">Choisissez votre formule sans engagement</p>
+
+      <!-- Toggle Mensuel / Annuel -->
+      <div class="mt-6 inline-flex items-center p-1 bg-slate-800 border border-slate-700 rounded-2xl">
+        <button id="paywall-monthly-btn" onclick="setPaywallCycle('monthly')" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition shadow">
+          Mensuel (14j d'essai)
+        </button>
+        <button id="paywall-yearly-btn" onclick="setPaywallCycle('yearly')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
+          Annuel (30j d'essai) ✨
+        </button>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+      <!-- Solo -->
+      <div class="bg-slate-800/90 border border-slate-700 p-6 rounded-3xl flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-extrabold uppercase text-slate-400">Offre Solo (1 boutique)</span>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="pw-solo-price" class="text-3xl font-black text-white">9,99€</span>
+            <span id="pw-solo-period" class="text-xs text-slate-400">/ mois</span>
+          </div>
+          <p id="pw-solo-trial" class="text-xs text-emerald-400 font-bold mt-1">14 jours offerts (0 € aujourd'hui)</p>
+          <ul class="text-xs text-slate-300 space-y-2 mt-4">
+            <li>✓ 1 point de vente</li>
+            <li>✓ Scanner caméra QR illimité</li>
+            <li>✓ Cartes & clients illimités</li>
+          </ul>
+        </div>
+        <a id="pw-solo-btn" href="https://buy.stripe.com/test_3cI9AVb4PfRQbna12wcfK01" class="mt-6 block w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold text-center rounded-xl text-xs transition">
+          Activer l'offre Solo (14j gratuits) →
+        </a>
+      </div>
+
+      <!-- Multi -->
+      <div class="bg-gradient-to-b from-indigo-950 to-slate-800 border-2 border-indigo-500 p-6 rounded-3xl flex flex-col justify-between relative shadow-xl">
+        <span class="absolute -top-3 right-4 bg-indigo-500 text-white font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full shadow">
+          Populaire
+        </span>
+        <div>
+          <span class="text-xs font-extrabold uppercase text-indigo-400">Offre Multi-Boutiques</span>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="pw-multi-price" class="text-3xl font-black text-white">14,99€</span>
+            <span id="pw-multi-period" class="text-xs text-slate-400">/ mois</span>
+          </div>
+          <p id="pw-multi-trial" class="text-xs text-emerald-400 font-bold mt-1">14 jours offerts (0 € aujourd'hui)</p>
+          <ul class="text-xs text-slate-200 space-y-2 mt-4">
+            <li>✓ Plusieurs boutiques / caisses</li>
+            <li>✓ Gestion des offres multi-commerces</li>
+            <li>✓ Synchronisation totale des passages</li>
+          </ul>
+        </div>
+        <a id="pw-multi-btn" href="https://buy.stripe.com/test_14A3cxa0LdJI0IwcLecfK02" class="mt-6 block w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-center rounded-xl text-xs transition shadow-lg">
+          Activer l'offre Multi (14j gratuits) →
+        </a>
+      </div>
+    </div>
+
+    <!-- Bouton temporaire de simulation pour accéder à la caisse -->
+    <div class="text-center pt-4">
+      <button onclick="unlockMerchantDashboard()" class="text-xs text-slate-500 hover:text-slate-300 underline">
+        [Mode Démo / Test] Accéder au tableau de bord caisse sans payer maintenant
+      </button>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 6. TABLEAU DE BORD DU COMMERÇANT          -->
+  <!-- ========================================== -->
+  <section id="view-merchant-dashboard" class="hidden flex-1 max-w-4xl mx-auto w-full p-4 space-y-6">
+    <div class="flex justify-between items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl">
+      <div>
+        <h2 id="merchant-shop-title" class="font-extrabold text-white text-lg">Mon Commerce</h2>
+        <p class="text-xs text-emerald-400 font-semibold">● Caisse connectée & active</p>
+      </div>
+      <button onclick="handleSignOut()" class="text-xs text-slate-400 hover:text-white transition">
+        Se déconnecter
+      </button>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      
+      <!-- SCANNER CAMÉRA DE CAISSE -->
+      <div class="bg-slate-800 border border-slate-700 p-6 rounded-3xl text-center space-y-4">
+        <h3 class="font-bold text-sm text-white">Scanner le QR Code Client</h3>
+        <p class="text-xs text-slate-400">Scannez le smartphone du client pour lui ajouter +1 tampon ou valider son cadeau.</p>
+
+        <div id="reader-container" class="rounded-2xl overflow-hidden bg-black max-w-xs mx-auto aspect-square flex items-center justify-center border border-slate-700">
+          <div id="reader" class="w-full"></div>
+        </div>
+
+        <div class="flex gap-2 justify-center">
+          <button id="start-scan-btn" onclick="startScanner()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-xs text-white transition">
+            📷 Activer la caméra de caisse
+          </button>
+          <button id="stop-scan-btn" onclick="stopScanner()" class="hidden px-4 py-2.5 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl text-xs text-white transition">
+            Éteindre
+          </button>
+        </div>
+
+        <div id="scan-feedback" class="hidden p-4 rounded-2xl text-left border"></div>
+      </div>
+
+      <!-- GESTION DES OFFRES & RÉCOMPENSES -->
+      <div class="space-y-6">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-3xl space-y-4">
+          <h3 class="font-bold text-sm text-white">🎁 Récompense au 10ème tampon</h3>
+          <p class="text-xs text-slate-400">Définissez ce que vos clients gagnent une fois leur carte complétée :</p>
+
+          <form onsubmit="handleSaveReward(event)" class="space-y-3">
+            <input 
+              id="merchant-reward-input" 
+              type="text" 
+              required 
+              placeholder="Ex. Un burger offert, 1 café gratuit..." 
+              value="Un cadeau surprise offert"
+              class="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+            />
+            <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-xs text-white transition">
+              Enregistrer l'offre
+            </button>
+          </form>
+        </div>
+
+        <!-- DERNIERS SCANS -->
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-3xl">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 mb-3">Dernières visites clients</h3>
+          <div id="merchant-history" class="divide-y divide-slate-700 text-xs text-slate-300">
+            <p class="py-3 text-slate-500 text-center">Aucun scan récent.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 7. SCRIPT LOGIQUE GLOBALE                  -->
+  <!-- ========================================== -->
+  <script>
+    const SUPABASE_URL = "https://prdbfryilqhtcrojpoht.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_mZj9GYBc8IJkfaiW3JTmsQ_ZvmCCmKd";
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let html5QrCode = null;
+    let currentUser = null;
+    let currentRole = null; // 'client' ou 'merchant'
+
+    const STRIPE_LINKS = {
+      solo_monthly: "https://buy.stripe.com/test_3cI9AVb4PfRQbna12wcfK01",
+      multi_monthly: "https://buy.stripe.com/test_14A3cxa0LdJI0IwcLecfK02",
+      solo_yearly: "https://buy.stripe.com/test_14AdRb8WHgVUaj66mQcfK03",
+      multi_yearly: "https://buy.stripe.com/test_14A00l0qbcFEgHubHacfK04"
+    };
+
+    // Vues
+    function hideAllViews() {
+      if (html5QrCode && html5QrCode.isScanning) stopScanner();
+      ['view-portal', 'view-client-auth', 'view-client-dashboard', 'view-merchant-auth', 'view-merchant-paywall', 'view-merchant-dashboard'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+    }
+
+    function showView(view) {
+      hideAllViews();
+      if (view === 'portal') document.getElementById('view-portal').classList.remove('hidden');
+      if (view === 'client-auth') document.getElementById('view-client-auth').classList.remove('hidden');
+      if (view === 'merchant-auth') document.getElementById('view-merchant-auth').classList.remove('hidden');
+      if (view === 'client-dashboard') document.getElementById('view-client-dashboard').classList.remove('hidden');
+      if (view === 'merchant-paywall') document.getElementById('view-merchant-paywall').classList.remove('hidden');
+      if (view === 'merchant-dashboard') document.getElementById('view-merchant-dashboard').classList.remove('hidden');
+    }
+
+    // Toggle formulaires
+    function toggleClientAuth(tab) {
+      const isSignup = tab === 'signup';
+      document.getElementById('form-client-signup').classList.toggle('hidden', !isSignup);
+      document.getElementById('form-client-login').classList.toggle('hidden', isSignup);
+      document.getElementById('client-tab-signup').className = isSignup ? "flex-1 pb-3 text-center text-xs font-bold text-emerald-400 border-b-2 border-emerald-400" : "flex-1 pb-3 text-center text-xs font-bold text-slate-400";
+      document.getElementById('client-tab-login').className = !isSignup ? "flex-1 pb-3 text-center text-xs font-bold text-emerald-400 border-b-2 border-emerald-400" : "flex-1 pb-3 text-center text-xs font-bold text-slate-400";
+    }
+
+    function toggleMerchantAuth(tab) {
+      const isSignup = tab === 'signup';
+      document.getElementById('form-merchant-signup').classList.toggle('hidden', !isSignup);
+      document.getElementById('form-merchant-login').classList.toggle('hidden', isSignup);
+      document.getElementById('m-tab-signup').className = isSignup ? "flex-1 pb-3 text-center text-xs font-bold text-indigo-400 border-b-2 border-indigo-400" : "flex-1 pb-3 text-center text-xs font-bold text-slate-400";
+      document.getElementById('m-tab-login').className = !isSignup ? "flex-1 pb-3 text-center text-xs font-bold text-indigo-400 border-b-2 border-indigo-400" : "flex-1 pb-3 text-center text-xs font-bold text-slate-400";
+    }
+
+    // Inscription / Connexion Client
+    async function handleCustomerSignUp(e) {
+      e.preventDefault();
+      const name = document.getElementById('c-signup-name').value.trim();
+      const phone = document.getElementById('c-signup-phone').value.trim();
+      const email = document.getElementById('c-signup-email').value.trim();
+      const password = document.getElementById('c-signup-password').value;
+
+      const { data, error } = await db.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: { full_name: name, phone: phone, role: 'customer' },
+          emailRedirectTo: window.location.origin
+        }
+      });
+
+      if (error) return alert("Erreur d'inscription : " + error.message);
+
+      // Création du profil client dans la table customers
+      await db.from('customers').insert([{
+        phone: phone,
+        reward_desc: `${name}|${email}`,
+        stamps: 1
+      }]);
+
+      alert("Un email de confirmation vient d'être envoyé à " + email + ". Veuillez cliquer sur le lien reçu pour valider votre compte !");
+      toggleClientAuth('login');
+    }
+
+    async function handleCustomerSignIn(e) {
+      e.preventDefault();
+      const email = document.getElementById('c-login-email').value.trim();
+      const password = document.getElementById('c-login-password').value;
+
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if (error) return alert("Erreur de connexion : " + error.message);
+
+      loadCustomerData(data.user);
+    }
+
+    async function loadCustomerData(user) {
+      currentUser = user;
+      currentRole = 'client';
+
+      const email = user.email;
+      let { data: customer } = await db.from('customers').select('*').like('reward_desc', `%${email}%`).maybeSingle();
+
+      if (!customer) {
+        // Fallback si pas encore rattaché
+        const name = user.user_metadata?.full_name || 'Client';
+        const phone = user.user_metadata?.phone || '06 00 00 00 00';
+        const { data: created } = await db.from('customers').insert([{
+          phone: phone,
+          reward_desc: `${name}|${email}`,
+          stamps: 1
+        }]).select().single();
+        customer = created;
+      }
+
+      showView('client-dashboard');
+
+      const name = customer.reward_desc ? customer.reward_desc.split('|')[0] : 'Client';
+      document.getElementById('client-view-name').innerText = name;
+      document.getElementById('client-view-email').innerText = email;
+
+      // QR Code personnel
+      const qrData = `SHOPBOOST_CLIENT:${customer.id}`;
+      document.getElementById('client-qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`;
+
+      // Tampons
+      const count = customer.stamps || 0;
+      const grid = document.getElementById('stamps-grid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= 10; i++) {
+        const isStamped = i <= count;
+        grid.innerHTML += `
+          <div class="h-11 rounded-xl flex items-center justify-center font-black text-xs border ${
+            isStamped ? 'stamp-active border-amber-300 text-slate-950' : 'bg-slate-900/60 border-slate-700/80 text-slate-600'
+          }">
+            ${isStamped ? '★' : i}
+          </div>
+        `;
+      }
+
+      const percent = Math.min((count / 10) * 100, 100);
+      document.getElementById('progress-bar').style.width = percent + '%';
+      document.getElementById('progress-text').innerText = `${count} / 10 tampons`;
+      document.getElementById('remaining-text').innerText = `${Math.max(10 - count, 0)} restants`;
+      document.getElementById('client-reward-unlocked').classList.toggle('hidden', count < 10);
+    }
+
+    // Inscription / Connexion Commerçant
+    async function handleMerchantSignUp(e) {
+      e.preventDefault();
+      const shopName = document.getElementById('m-signup-name').value.trim();
+      const email = document.getElementById('m-signup-email').value.trim();
+      const password = document.getElementById('m-signup-password').value;
+
+      const { data, error } = await db.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: { shop_name: shopName, role: 'merchant' },
+          emailRedirectTo: window.location.origin
+        }
+      });
+
+      if (error) return alert("Erreur d'inscription : " + error.message);
+
+      alert("Compte commerçant créé ! Un email de confirmation a été envoyé à " + email + ". Cliquez dessus pour activer votre accès.");
+      toggleMerchantAuth('login');
+    }
+
+    async function handleMerchantSignIn(e) {
+      e.preventDefault();
+      const email = document.getElementById('m-login-email').value.trim();
+      const password = document.getElementById('m-login-password').value;
+
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if (error) return alert("Connexion impossible : " + error.message);
+
+      currentUser = data.user;
+      currentRole = 'merchant';
+
+      // Vérification paywall : après confirmation du mail, l'écran de paiement apparaît
+      showView('merchant-paywall');
+    }
+
+    function unlockMerchantDashboard() {
+      showView('merchant-dashboard');
+      const shop = currentUser?.user_metadata?.shop_name || "Mon Commerce";
+      document.getElementById('merchant-shop-title').innerText = shop;
+      loadMerchantHistory();
+    }
+
+    // Paywall Cycle Toggle
+    function setPaywallCycle(cycle) {
+      const isYearly = cycle === 'yearly';
+      document.getElementById('paywall-monthly-btn').className = !isYearly ? "px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white" : "px-4 py-2 rounded-xl text-xs font-bold text-slate-400";
+      document.getElementById('paywall-yearly-btn').className = isYearly ? "px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white" : "px-4 py-2 rounded-xl text-xs font-bold text-slate-400";
+
+      if (isYearly) {
+        document.getElementById('pw-solo-price').innerText = "99€";
+        document.getElementById('pw-solo-period').innerText = "/ an";
+        document.getElementById('pw-solo-trial').innerText = "30 jours offerts (0 € aujourd'hui)";
+        document.getElementById('pw-solo-btn').href = STRIPE_LINKS.solo_yearly;
+        document.getElementById('pw-solo-btn').innerText = "Activer l'offre Solo (30j gratuits) →";
+
+        document.getElementById('pw-multi-price').innerText = "149€";
+        document.getElementById('pw-multi-period').innerText = "/ an";
+        document.getElementById('pw-multi-trial').innerText = "30 jours offerts (0 € aujourd'hui)";
+        document.getElementById('pw-multi-btn').href = STRIPE_LINKS.multi_yearly;
+        document.getElementById('pw-multi-btn').innerText = "Activer l'offre Multi (30j gratuits) →";
+      } else {
+        document.getElementById('pw-solo-price').innerText = "9,99€";
+        document.getElementById('pw-solo-period').innerText = "/ mois";
+        document.getElementById('pw-solo-trial').innerText = "14 jours offerts (0 € aujourd'hui)";
+        document.getElementById('pw-solo-btn').href = STRIPE_LINKS.solo_monthly;
+        document.getElementById('pw-solo-btn').innerText = "Activer l'offre Solo (14j gratuits) →";
+
+        document.getElementById('pw-multi-price').innerText = "14,99€";
+        document.getElementById('pw-multi-period').innerText = "/ mois";
+        document.getElementById('pw-multi-trial').innerText = "14 jours offerts (0 € aujourd'hui)";
+        document.getElementById('pw-multi-btn').href = STRIPE_LINKS.multi_monthly;
+        document.getElementById('pw-multi-btn').innerText = "Activer l'offre Multi (14j gratuits) →";
+      }
+    }
+
+    // Gestion de la récompense proposée
+    function handleSaveReward(e) {
+      e.preventDefault();
+      const val = document.getElementById('merchant-reward-input').value.trim();
+      localStorage.setItem('shopboost_reward_offer', val);
+      document.getElementById('current-reward-desc').innerText = val;
+      alert("Offre enregistrée ! Vos clients verront cette récompense sur leur pass.");
+    }
+
+    // Scanner Caméra Commerçant
+    async function startScanner() {
+      document.getElementById('start-scan-btn').classList.add('hidden');
+      document.getElementById('stop-scan-btn').classList.remove('hidden');
+
+      html5QrCode = new Html5Qrcode("reader");
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 200 },
+        onScanSuccess
+      );
+    }
+
+    async function stopScanner() {
+      if (html5QrCode) {
+        await html5QrCode.stop();
+        html5QrCode = null;
+      }
+      document.getElementById('start-scan-btn').classList.remove('hidden');
+      document.getElementById('stop-scan-btn').classList.add('hidden');
+    }
+
+    async function onScanSuccess(decodedText) {
+      await stopScanner();
+
+      if (!decodedText.startsWith("SHOPBOOST_CLIENT:")) {
+        alert("QR Code non reconnu ou étranger.");
+        return;
+      }
+
+      const customerId = decodedText.replace("SHOPBOOST_CLIENT:", "");
+      const { data: customer } = await db.from('customers').select('*').eq('id', customerId).single();
+
+      if (!customer) return alert("Client introuvable en base !");
+
+      const feedback = document.getElementById('scan-feedback');
+      feedback.classList.remove('hidden');
+      const name = customer.reward_desc ? customer.reward_desc.split('|')[0] : 'Client';
+
+      if (customer.stamps >= 10) {
+        await db.from('customers').update({ stamps: 0, last_visit: new Date() }).eq('id', customer.id);
+        feedback.className = "p-4 rounded-2xl bg-amber-500/20 border-amber-500 text-amber-300";
+        feedback.innerHTML = `
+          <p class="font-black text-sm">🎁 RÉCOMPENSE LIVRÉE</p>
+          <p class="text-xs mt-1">Client : <strong>${name}</strong> (${customer.phone})</p>
+          <p class="text-[11px] text-slate-300 mt-0.5">La carte est réinitialisée à 0.</p>
+        `;
+      } else {
+        const newStamps = customer.stamps + 1;
+        await db.from('customers').update({ stamps: newStamps, last_visit: new Date() }).eq('id', customer.id);
+        feedback.className = "p-4 rounded-2xl bg-emerald-500/20 border-emerald-500 text-emerald-300";
+        feedback.innerHTML = `
+          <p class="font-black text-sm">✅ +1 TAMPON ENREGISTRÉ</p>
+          <p class="text-xs mt-1">Client : <strong>${name}</strong> (${customer.phone})</p>
+          <p class="text-[11px] text-slate-300 mt-0.5">Nouveau total : <strong>${newStamps} / 10</strong></p>
+        `;
+      }
+      loadMerchantHistory();
+    }
+
+    async function loadMerchantHistory() {
+      const { data } = await db.from('customers').select('*').order('last_visit', { ascending: false }).limit(5);
+      if (data && data.length > 0) {
+        document.getElementById('merchant-history').innerHTML = data.map(c => {
+          const name = c.reward_desc ? c.reward_desc.split('|')[0] : 'Client';
+          return `
+            <div class="py-2.5 flex justify-between items-center">
+              <div>
+                <p class="font-bold text-white">${name}</p>
+                <p class="font-mono text-slate-400 text-[11px]">${c.phone}</p>
+              </div>
+              <span class="px-2.5 py-1 bg-indigo-950 border border-indigo-700 text-indigo-300 font-bold rounded-lg text-xs">${c.stamps} / 10</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    async function handleSignOut() {
+      await db.auth.signOut();
+      currentUser = null;
+      currentRole = null;
+      showView('portal');
+    }
+
+    // Gestion session retour email
+    db.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        currentUser = session.user;
+        const role = currentUser.user_metadata?.role;
+        if (role === 'customer') {
+          loadCustomerData(currentUser);
+        } else if (role === 'merchant') {
+          showView('merchant-paywall');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
