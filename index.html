@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopBoost - Plateforme de Fidélisation Commerçants & Portefeuille Client</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .wallet-stack {
+      perspective: 1000px;
+    }
+    .wallet-card {
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .wallet-card:hover {
+      transform: translateY(-8px);
+    }
+    .wallet-card-active {
+      transform: translateY(0) scale(1.02) !important;
+      z-index: 30 !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+    /* Styles barres d'histogramme hebdo */
+    .chart-bar {
+      transition: height 0.5s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- ========================================== -->
+  <!-- 0. BARRE SUPÉRIEURE COMMUNE / PORTAIL      -->
+  <!-- ========================================== -->
+  <header id="global-header" class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="showView('portal')">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-600/30">
+          SB
+        </div>
+        <span class="font-extrabold text-xl text-white tracking-tight">ShopBoost</span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="nav-portal-btn" onclick="showView('portal')" class="text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+          Accueil
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 1. PORTAIL PRINCIPAL (CHOIX PROFIL)        -->
+  <!-- ========================================== -->
+  <section id="view-portal" class="flex-1 flex items-center justify-center p-6">
+    <div class="max-w-md w-full text-center space-y-8">
+      <div>
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 text-white font-black text-2xl shadow-xl shadow-indigo-600/30 mb-4">
+          SB
+        </div>
+        <h1 class="text-3xl md:text-4xl font-black text-white tracking-tight">
+          ShopBoost
+        </h1>
+        <p class="text-sm text-slate-400 mt-2">La fidélisation client réinventée pour les commerces locaux</p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Accès Portefeuille Client -->
+        <button onclick="showView('client-auth')" class="w-full p-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl shadow-lg transition text-left flex items-center gap-4 group">
+          <span class="text-3xl bg-white/10 p-3 rounded-xl group-hover:scale-105 transition">💳</span>
+          <div>
+            <h2 class="font-bold text-white text-base">Portefeuille Client</h2>
+            <p class="text-xs text-emerald-100 mt-0.5">Mes cartes Apple Wallet style, mes points & mes QR codes</p>
+          </div>
+        </button>
+
+        <!-- Accès Espace Commerçant -->
+        <button onclick="showView('merchant-auth')" class="w-full p-5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-2xl shadow-lg transition text-left flex items-center gap-4 group">
+          <span class="text-3xl bg-white/5 p-3 rounded-xl group-hover:scale-105 transition">🏪</span>
+          <div>
+            <h2 class="font-bold text-white text-base">Espace Commerçant</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Inscription gérant, caisse optique, stats & catalogue récompenses</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 2. AUTHENTIFICATION CLIENT               -->
+  <!-- ========================================== -->
+  <section id="view-client-auth" class="hidden flex-1 flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm space-y-5">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl">
+        <div class="flex border-b border-slate-800 mb-6">
+          <button id="client-tab-signup" onclick="toggleClientAuth('signup')" class="flex-1 pb-3 text-center text-xs font-bold text-emerald-400 border-b-2 border-emerald-400">
+            Créer mon portefeuille
+          </button>
+          <button id="client-tab-login" onclick="toggleClientAuth('login')" class="flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white">
+            Connexion
+          </button>
+        </div>
+
+        <form id="form-client-signup" onsubmit="handleCustomerSignUp(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Prénom & Nom</label>
+            <input id="c-signup-name" type="text" required placeholder="Alex Martin" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Numéro de Téléphone</label>
+            <input id="c-signup-phone" type="tel" required placeholder="06 12 34 56 78" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Email</label>
+            <input id="c-signup-email" type="email" required placeholder="alex@email.com" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
+            <input id="c-signup-password" type="password" minlength="6" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold text-center">
+            🎁 Bonus de bienvenue : +10 points offerts dès la création !
+          </div>
+          <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg mt-2">
+            Obtenir mon portefeuille →
+          </button>
+        </form>
+
+        <form id="form-client-login" onsubmit="handleCustomerSignIn(event)" class="space-y-3 hidden">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Email</label>
+            <input id="c-login-email" type="email" required placeholder="alex@email.com" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
+            <input id="c-login-password" type="password" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500">
+          </div>
+          <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg mt-2">
+            Accéder à mes cartes →
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 3. PORTEFEUILLE CLIENT (STYLE APPLE WALLET)-->
+  <!-- ========================================== -->
+  <section id="view-client-dashboard" class="hidden flex-1 max-w-md mx-auto w-full p-4 space-y-6">
+    
+    <!-- Profil & Actions -->
+    <div class="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-3xl">
+      <div>
+        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Portefeuille Digital</span>
+        <h2 id="client-user-name" class="font-black text-white text-base">Alex Martin</h2>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="handleSignOut()" class="text-xs px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition">
+          Déconnexion
+        </button>
+      </div>
+    </div>
+
+    <!-- PILE DE CARTES (STACK APPLE WALLET) -->
+    <div>
+      <div class="flex justify-between items-center mb-2 px-1">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Mes Cartes Fidélité</span>
+        <span class="text-[11px] text-indigo-400 font-semibold" id="cards-count-label">3 commerces</span>
+      </div>
+
+      <div id="wallet-cards-stack" class="wallet-stack space-y-[-70px] pb-6">
+        <!-- Cartes injectées en JS -->
+      </div>
+    </div>
+
+    <!-- CARTE DÉPLIÉE AU PREMIER PLAN (POPUP MODALE OU FOCUS) -->
+    <div id="active-card-modal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
+      <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-2xl relative animate-in fade-in zoom-in-95">
+        <button onclick="closeActiveCard()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-black text-xs">
+          ✕
+        </button>
+
+        <div class="text-center pt-2">
+          <span id="active-card-category" class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white/10 text-white">
+            Boulangerie
+          </span>
+          <h3 id="active-card-shop" class="text-xl font-black text-white mt-1">Boulangerie Centrale</h3>
+          <p id="active-card-vip-badge" class="text-xs text-amber-400 font-bold mt-0.5">Membre VIP</p>
+        </div>
+
+        <!-- QR Code Centré Haute Résolution -->
+        <div class="p-4 bg-white rounded-2xl flex flex-col items-center justify-center shadow-inner mx-auto w-52 h-52">
+          <div id="active-card-qrcode"></div>
+        </div>
+        <p class="text-[11px] text-slate-400 text-center font-medium">Présentez ce QR Code lors de votre passage en caisse</p>
+
+        <!-- Barre de progression vers les 100 points -->
+        <div class="space-y-1.5 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-white" id="active-card-points">35 pts</span>
+            <span class="text-slate-400 text-[11px]">Objectif 100 pts</span>
+          </div>
+          <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div id="active-card-progressbar" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-full transition-all duration-500" style="width: 35%"></div>
+          </div>
+          <p id="active-card-next-reward" class="text-[10px] text-emerald-400 font-semibold text-right pt-0.5">Plus que 5 pts pour le prochain palier</p>
+        </div>
+
+        <!-- Catalogue des 4 Paliers à débloquer -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-extrabold uppercase text-slate-400 tracking-wider">Paliers de Récompenses :</h4>
+          <div id="active-card-tiers-list" class="space-y-2 text-xs">
+            <!-- Paliers 20, 40, 70, 100 -->
+          </div>
+        </div>
+
+        <button onclick="closeActiveCard()" class="w-full py-3 bg-slate-800 hover:bg-slate-750 text-white font-bold rounded-xl text-xs transition">
+          Fermer la carte
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 4. AUTHENTIFICATION COMMERÇANT            -->
+  <!-- ========================================== -->
+  <section id="view-merchant-auth" class="hidden flex-1 flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm space-y-6">
+      
+      <!-- En-tête inscription (Identique à la capture) -->
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 text-white font-black text-xl shadow-lg shadow-indigo-600/30">
+          SB
+        </div>
+        <h2 class="text-2xl font-black text-white tracking-tight">ShopBoost</h2>
+        <p class="text-xs text-slate-400">La fidélisation client réinventée pour les commerces locaux</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl">
+        <!-- Onglets Connexion / Créer un commerce -->
+        <div class="flex border-b border-slate-800 mb-6">
+          <button id="m-tab-login" onclick="toggleMerchantAuth('login')" class="flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white transition">
+            Connexion Marchand
+          </button>
+          <button id="m-tab-signup" onclick="toggleMerchantAuth('signup')" class="flex-1 pb-3 text-center text-xs font-bold text-indigo-400 border-b-2 border-indigo-500 transition">
+            Créer un Commerce
+          </button>
+        </div>
+
+        <!-- Formulaire Créer un Commerce (Champs exacts) -->
+        <form id="form-merchant-signup" onsubmit="handleMerchantSignUp(event)" class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1 flex items-center gap-1.5">
+              <span>🏪</span> Nom du commerce
+            </label>
+            <input id="m-signup-name" type="text" required placeholder="Ex: Salon Tendance Coiffure" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">
+              Type d'activité
+            </label>
+            <select id="m-signup-type" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500">
+              <option value="Boulangerie / Pâtisserie">Boulangerie / Pâtisserie</option>
+              <option value="Restaurant / Snack / Fast Food">Restaurant / Snack / Fast Food</option>
+              <option value="Salon de coiffure / Barbier">Salon de coiffure / Barbier</option>
+              <option value="Magasin de prêt-à-porter">Magasin de prêt-à-porter</option>
+              <option value="Épicerie fine / Primeur">Épicerie fine / Primeur</option>
+              <option value="Café / Salon de thé">Café / Salon de thé</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1 flex items-center gap-1.5">
+              <span>✉️</span> Email professionnel
+            </label>
+            <input id="m-signup-email" type="email" required placeholder="contact@commerce.fr" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1 flex items-center gap-1.5">
+              <span>🔒</span> Mot de passe
+            </label>
+            <input id="m-signup-password" type="password" minlength="6" required placeholder="Minimum 6 caractères" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold rounded-xl text-xs transition shadow-lg shadow-indigo-600/30">
+            Créer mon compte ShopBoost
+          </button>
+        </form>
+
+        <!-- Formulaire Connexion Marchand -->
+        <form id="form-merchant-login" onsubmit="handleMerchantSignIn(event)" class="space-y-4 hidden">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">Email professionnel</label>
+            <input id="m-login-email" type="email" required placeholder="contact@commerce.fr" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">Mot de passe</label>
+            <input id="m-login-password" type="password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+          <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs transition shadow-lg">
+            Ouvrir ma session marchande →
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 5. PAYWALL COMMERÇANT (STRIPE 14J / 30J)   -->
+  <!-- ========================================== -->
+  <section id="view-merchant-paywall" class="hidden flex-1 max-w-4xl mx-auto w-full p-4 space-y-8">
+    <div class="text-center">
+      <span class="px-3 py-1 bg-emerald-950 border border-emerald-700 text-emerald-300 text-xs font-bold rounded-full uppercase tracking-wider">
+        Compte Marchand Créé avec succès
+      </span>
+      <h2 class="text-2xl md:text-3xl font-black text-white mt-3">Activez votre formule pour débloquer votre caisse</h2>
+      <p class="text-xs md:text-sm text-slate-400 mt-1">Zéro matériel requis • Résiliable en un clic</p>
+
+      <!-- Toggle Mensuel (14j) / Annuel (30j) -->
+      <div class="mt-6 inline-flex items-center p-1 bg-slate-900 border border-slate-800 rounded-2xl">
+        <button id="pw-monthly-btn" onclick="setPaywallCycle('monthly')" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition shadow">
+          Mensuel (14j d'essai)
+        </button>
+        <button id="pw-yearly-btn" onclick="setPaywallCycle('yearly')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">
+          Annuel (30j d'essai offerts) ✨
+        </button>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+      <!-- Solo -->
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-extrabold uppercase text-slate-400">Offre Solo (1 commerce)</span>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="pw-solo-price" class="text-3xl font-black text-white">9,99€</span>
+            <span id="pw-solo-period" class="text-xs text-slate-400">/ mois</span>
+          </div>
+          <p id="pw-solo-trial" class="text-xs text-emerald-400 font-bold mt-1">14 jours offerts (0 € aujourd'hui)</p>
+          <ul class="text-xs text-slate-300 space-y-2.5 mt-5">
+            <li>✓ 1 seul point de vente</li>
+            <li>✓ Scanner caméra optique de caisse</li>
+            <li>✓ Répertoire clients & cartes illimités</li>
+            <li>✓ Paliers cadeaux personnalisés</li>
+          </ul>
+        </div>
+        <a id="pw-solo-btn" href="https://buy.stripe.com/test_3cI9AVb4PfRQbna12wcfK01" class="mt-6 block w-full py-3 bg-slate-800 hover:bg-slate-750 text-white font-bold text-center rounded-xl text-xs transition">
+          Activer l'offre Solo →
+        </a>
+      </div>
+
+      <!-- Multi -->
+      <div class="bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-900 border-2 border-indigo-500 p-6 rounded-3xl flex flex-col justify-between relative shadow-xl">
+        <span class="absolute -top-3 right-4 bg-indigo-500 text-white font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full shadow">
+          Recommandé
+        </span>
+        <div>
+          <span class="text-xs font-extrabold uppercase text-indigo-400">Offre Multi-Commerces</span>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="pw-multi-price" class="text-3xl font-black text-white">14,99€</span>
+            <span id="pw-multi-period" class="text-xs text-slate-400">/ mois</span>
+          </div>
+          <p id="pw-multi-trial" class="text-xs text-emerald-400 font-bold mt-1">14 jours offerts (0 € aujourd'hui)</p>
+          <ul class="text-xs text-slate-200 space-y-2.5 mt-5">
+            <li>✓ Plusieurs points de vente / caisses</li>
+            <li>✓ Synchronisation multi-magasins</li>
+            <li>✓ Campagnes promotionnelles avancées</li>
+            <li>✓ Support prioritaire 7j/7</li>
+          </ul>
+        </div>
+        <a id="pw-multi-btn" href="https://buy.stripe.com/test_14A3cxa0LdJI0IwcLecfK02" class="mt-6 block w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-center rounded-xl text-xs transition shadow-lg shadow-indigo-600/30">
+          Activer l'offre Multi →
+        </a>
+      </div>
+    </div>
+
+    <div class="text-center pt-2">
+      <button onclick="unlockMerchantDashboard()" class="text-xs text-slate-500 hover:text-slate-300 underline">
+        [Mode Démo / Test] Accéder directement à la caisse
+      </button>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 6. DASHBOARD COMMERÇANT COMPLET           -->
+  <!-- ========================================== -->
+  <section id="view-merchant-dashboard" class="hidden flex-1 flex flex-col lg:flex-row min-h-screen">
+    
+    <!-- SIDEBAR RÉTRACTABLE DU COMMERÇANT -->
+    <aside id="merchant-sidebar" class="w-full lg:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between shrink-0">
+      <div class="space-y-6">
+        
+        <!-- En-tête profil du commerce -->
+        <div class="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center font-black text-sm">
+            🏪
+          </div>
+          <div class="overflow-hidden">
+            <h3 id="sidebar-shop-name" class="font-bold text-white text-xs truncate">Boulangerie Centrale</h3>
+            <span id="sidebar-shop-type" class="text-[10px] text-slate-400 block truncate">Boulangerie / Pâtisserie</span>
+          </div>
+        </div>
+
+        <!-- Navigation 6 sections -->
+        <nav class="space-y-1">
+          <button onclick="switchMerchantTab('tab-dashboard')" id="nav-btn-dashboard" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition">
+            <span>📊</span> Tableau de bord
+          </button>
+          <button onclick="switchMerchantTab('tab-pos')" id="nav-btn-pos" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <span>📷</span> Caisse & Scan Optique
+          </button>
+          <button onclick="switchMerchantTab('tab-clients')" id="nav-btn-clients" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <span>👥</span> Répertoire Clients
+          </button>
+          <button onclick="switchMerchantTab('tab-rewards')" id="nav-btn-rewards" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <span>🎁</span> Récompenses
+          </button>
+          <button onclick="switchMerchantTab('tab-promos')" id="nav-btn-promos" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <span>⚡</span> Promotions
+          </button>
+          <button onclick="switchMerchantTab('tab-settings')" id="nav-btn-settings" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <span>⚙️</span> Paramètres & Couleurs
+          </button>
+        </nav>
+      </div>
+
+      <!-- Pied de sidebar -->
+      <div class="pt-4 border-t border-slate-800 space-y-3">
+        <button onclick="switchMerchantTab('tab-pos')" class="w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-xl text-xs shadow flex items-center justify-center gap-2">
+          <span>⚡</span> Scanner Rapide
+        </button>
+        <button onclick="handleSignOut()" class="w-full py-2 text-slate-400 hover:text-white text-xs font-semibold text-center block">
+          Se déconnecter
+        </button>
+      </div>
+    </aside>
+
+    <!-- ZONE PRINCIPALE DE CONTENU DU DASHBOARD -->
+    <main class="flex-1 p-4 lg:p-8 overflow-y-auto space-y-6">
+      
+      <!-- ==================== 6.1 ONGLET TABLEAU DE BORD ==================== -->
+      <div id="tab-dashboard" class="space-y-6">
+        <div>
+          <h2 class="text-xl font-black text-white">Tableau de bord</h2>
+          <p class="text-xs text-slate-400">Aperçu en temps réel de votre activité de fidélisation</p>
+        </div>
+
+        <!-- 4 Cartes Statistiques clés -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Total Clients</span>
+            <p id="stat-total-clients" class="text-2xl font-black text-white mt-1">48</p>
+            <span class="text-[10px] text-emerald-400 font-semibold">+12% ce mois</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Cartes Actives</span>
+            <p id="stat-active-cards" class="text-2xl font-black text-indigo-400 mt-1">42</p>
+            <span class="text-[10px] text-slate-500 font-semibold">87% d'engagement</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Cadeaux Offerts</span>
+            <p id="stat-rewards-given" class="text-2xl font-black text-amber-400 mt-1">16</p>
+            <span class="text-[10px] text-amber-400/80 font-semibold">Récompenses remises</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Passages Caisse</span>
+            <p id="stat-total-scans" class="text-2xl font-black text-emerald-400 mt-1">128</p>
+            <span class="text-[10px] text-emerald-400 font-semibold">Scans validés</span>
+          </div>
+        </div>
+
+        <!-- Graphique d'affluence de la semaine (Barres Lun-Dim) -->
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+          <div class="flex justify-between items-center">
+            <h3 class="text-sm font-bold text-white">Fréquentation & Passages de la Semaine</h3>
+            <span class="text-xs text-indigo-400 font-semibold">Semaine en cours</span>
+          </div>
+          <div class="h-40 flex items-end justify-between gap-2 pt-4 px-2">
+            <div class="flex-1 flex flex-col items-center gap-1.5">
+              <div class="w-full bg-slate-800 hover:bg-indigo-600 rounded-t-lg chart-bar" style="height: 45%;"></div>
+              <span class="text-[10px] font-bold text-slate-400">Lun</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1.5">
+              <div class="w-full bg-slate-800 hover:bg-indigo-600 rounded-t-lg chart-bar" style="height: 60%;"></div>
+              <span class="text-[10px] font-bold text-slate-400">Mar</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1.5">
+              <div class="w-full bg-slate-800 hover:bg-indigo-600 rounded-t-lg chart-bar" style="height: 75%;"></div>
+              <span class="text-[10px] font-bold text-slate-400">Mer</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1.5">
+              <div class="w-full bg-slate-800 hover:bg-indigo-600 rounded-t-lg chart-bar" style="height: 50%;"></div>
+              <span class="text-[10px] font-bold text-slate-400">Jeu</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1.5">
+              <div class="w-full bg-indigo-500 rounded-t-lg chart-bar shadow-lg shadow-indigo-500/30" style="height: 90%;"></div>
+              <span class="text-[10px] font-bold text-indigo-400">Ven</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1.5">
+              <div class="w-full bg-indigo-600 rounded-t-lg chart-bar shadow-lg shadow-indigo-600/30" style="height: 100%;"></div>
+              <span class="text-[10px] font-bold text-indigo-400">Sam</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1.5">
+              <div class="w-full bg-slate-800 hover:bg-indigo-600 rounded-t-lg chart-bar" style="height: 30%;"></div>
+              <span class="text-[10px] font-bold text-slate-400">Dim</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dernières visites clients -->
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-3">
+          <h3 class="text-sm font-bold text-white">Derniers passages en caisse</h3>
+          <div id="recent-scans-list" class="divide-y divide-slate-800 text-xs text-slate-300">
+            <!-- Rendu JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 6.2 ONGLET CAISSE & SCAN OPTIQUE ==================== -->
+      <div id="tab-pos" class="hidden space-y-6 max-w-2xl mx-auto">
+        <div>
+          <h2 class="text-xl font-black text-white">Caisse & Scan Optique</h2>
+          <p class="text-xs text-slate-400">Scannez le smartphone du client et appliquez la règle 1 € = 1 point</p>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-5 text-center">
+          
+          <!-- Lecteur caméra de caisse -->
+          <div id="reader-container" class="rounded-2xl overflow-hidden bg-black max-w-xs mx-auto aspect-square flex items-center justify-center border border-slate-800 relative">
+            <div id="reader" class="w-full"></div>
+            <div id="reader-placeholder" class="text-slate-500 text-xs flex flex-col items-center gap-2">
+              <span class="text-4xl">📷</span>
+              <span>Caméra éteinte</span>
+            </div>
+          </div>
+
+          <div class="flex gap-2 justify-center">
+            <button id="start-scan-btn" onclick="startScanner()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-xs text-white transition shadow-lg">
+              Allumer la caméra
+            </button>
+            <button id="stop-scan-btn" onclick="stopScanner()" class="hidden px-4 py-2.5 bg-slate-800 hover:bg-slate-700 font-bold rounded-xl text-xs text-white transition">
+              Éteindre
+            </button>
+          </div>
+
+          <!-- Calculateur de Points 1€ = 1 pt (Arrondi 0,50€) -->
+          <div class="pt-4 border-t border-slate-800 text-left space-y-3">
+            <label class="block text-xs font-bold text-slate-300">Montant de l'encaissement (€) :</label>
+            <div class="flex gap-2 items-center">
+              <input id="pos-amount-input" type="number" step="0.10" value="8.50" oninput="calculatePointsFromAmount()" placeholder="Ex. 12.50" class="flex-1 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-base focus:outline-none focus:border-indigo-500">
+              <div class="px-4 py-3 bg-indigo-950 border border-indigo-700 rounded-xl text-center">
+                <span class="text-[10px] text-indigo-300 font-bold uppercase block">Points calculés</span>
+                <span id="pos-points-preview" class="text-base font-black text-white">+9 pts</span>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400">Règle : arrondi supérieur dès 0,50 € (ex: 8,50 € = 9 pts | 8,40 € = 8 pts).</p>
+          </div>
+
+          <!-- Retour scan immédiat -->
+          <div id="scan-feedback" class="hidden p-4 rounded-2xl text-left border"></div>
+        </div>
+      </div>
+
+      <!-- ==================== 6.3 ONGLET CLIENTS (RÉPERTOIRE) ==================== -->
+      <div id="tab-clients" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-black text-white">Répertoire Clients</h2>
+            <p class="text-xs text-slate-400">Gestion de votre base de clients fidélisés</p>
+          </div>
+          <button onclick="openNewClientModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-xs text-white transition flex items-center gap-2 self-start">
+            <span>+</span> Inscrire un Client (+10 pts)
+          </button>
+        </div>
+
+        <!-- Recherche et filtres -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input id="clients-search-input" oninput="filterClientsList()" type="text" placeholder="Rechercher par nom ou téléphone..." class="flex-1 px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500">
+          <div class="flex gap-1.5">
+            <button onclick="setClientsFilter('all')" id="filter-btn-all" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white">Tous</button>
+            <button onclick="setClientsFilter('vip')" id="filter-btn-vip" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">VIP (+50 pts)</button>
+          </div>
+        </div>
+
+        <!-- Table des clients -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-extrabold border-b border-slate-800">
+                <tr>
+                  <th class="px-4 py-3">Client</th>
+                  <th class="px-4 py-3">Téléphone</th>
+                  <th class="px-4 py-3">Solde Points</th>
+                  <th class="px-4 py-3">Statut</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="clients-table-body" class="divide-y divide-slate-800">
+                <!-- Rendu JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 6.4 ONGLET RÉCOMPENSES ==================== -->
+      <div id="tab-rewards" class="hidden space-y-6 max-w-3xl">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-black text-white">Catalogue des Récompenses</h2>
+            <p class="text-xs text-slate-400">Paliers de fidélisation progressifs pour stimuler les visites</p>
+          </div>
+          <button onclick="saveMerchantRewards()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition">
+            Enregistrer les paliers
+          </button>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4" id="rewards-settings-grid">
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+            <span class="text-[10px] font-extrabold uppercase text-amber-400">Palier 1 • 20 Points</span>
+            <input id="reward-20-input" type="text" value="Un café ou -10%" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+            <span class="text-[10px] font-extrabold uppercase text-amber-400">Palier 2 • 40 Points</span>
+            <input id="reward-40-input" type="text" value="Un dessert maison ou viennoiserie" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+            <span class="text-[10px] font-extrabold uppercase text-amber-400">Palier 3 • 70 Points</span>
+            <input id="reward-70-input" type="text" value="Une formule déjeuner ou -25%" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
+            <span class="text-[10px] font-extrabold uppercase text-amber-400">Grand Palier VIP • 100 Points</span>
+            <input id="reward-100-input" type="text" value="Le Menu Complet ou Soin Offert" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 6.5 ONGLET PROMOTIONS ==================== -->
+      <div id="tab-promos" class="hidden space-y-6 max-w-2xl">
+        <div>
+          <h2 class="text-xl font-black text-white">Promotions Éphémères</h2>
+          <p class="text-xs text-slate-400">Créez des offres temporaires visibles sur les cartes de vos clients</p>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+          <form onsubmit="handleCreatePromo(event)" class="space-y-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">Titre de la campagne</label>
+              <input id="promo-title-input" type="text" required placeholder="Ex. Happy Hour du Jeudi" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-300 mb-1">Avantage offert</label>
+              <input id="promo-desc-input" type="text" required placeholder="Ex. Points doublés entre 14h et 17h !" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+            </div>
+            <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 font-bold text-white rounded-xl text-xs transition">
+              Lancer la promotion
+            </button>
+          </form>
+
+          <div id="active-promos-list" class="pt-3 border-t border-slate-800 space-y-2">
+            <div class="p-3 rounded-xl bg-indigo-950/40 border border-indigo-700/50 flex justify-between items-center text-xs">
+              <div>
+                <p class="font-bold text-white">Points Doublés Week-end</p>
+                <p class="text-[11px] text-slate-400">Pour tout achat supérieur à 15€</p>
+              </div>
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">Actif</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 6.6 ONGLET PARAMÈTRES & COULEURS DU PASS ==================== -->
+      <div id="tab-settings" class="hidden space-y-6 max-w-4xl">
+        <div>
+          <h2 class="text-xl font-black text-white">Paramètres & Design du Pass</h2>
+          <p class="text-xs text-slate-400">Personnalisez l'apparence de votre carte telle qu'elle apparaîtra dans l'Apple Wallet du client</p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6">
+          <!-- Configuration -->
+          <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+            <h3 class="text-xs font-extrabold uppercase text-slate-400 tracking-wider">Nuancier de couleurs de votre carte :</h3>
+            
+            <div class="grid grid-cols-3 gap-2.5" id="color-palette-buttons">
+              <!-- Boutons de couleurs prédéfinies -->
+              <button onclick="changePassColor('from-violet-700 via-indigo-900 to-slate-950', 'Violet Royal')" class="p-3 rounded-xl bg-gradient-to-br from-violet-700 to-indigo-900 text-left text-[11px] font-bold text-white border border-violet-500/50">
+                Violet Royal
+              </button>
+              <button onclick="changePassColor('from-emerald-700 via-teal-900 to-slate-950', 'Émeraude Artisanal')" class="p-3 rounded-xl bg-gradient-to-br from-emerald-700 to-teal-900 text-left text-[11px] font-bold text-white border border-emerald-500/50">
+                Émeraude
+              </button>
+              <button onclick="changePassColor('from-amber-600 via-amber-900 to-slate-950', 'Ambre Doré')" class="p-3 rounded-xl bg-gradient-to-br from-amber-600 to-amber-900 text-left text-[11px] font-bold text-white border border-amber-500/50">
+                Ambre Doré
+              </button>
+              <button onclick="changePassColor('from-rose-700 via-red-950 to-slate-950', 'Rose Rubis')" class="p-3 rounded-xl bg-gradient-to-br from-rose-700 to-red-950 text-left text-[11px] font-bold text-white border border-rose-500/50">
+                Rose Rubis
+              </button>
+              <button onclick="changePassColor('from-blue-700 via-sky-950 to-slate-950', 'Bleu Océan')" class="p-3 rounded-xl bg-gradient-to-br from-blue-700 to-sky-950 text-left text-[11px] font-bold text-white border border-blue-500/50">
+                Bleu Océan
+              </button>
+              <button onclick="changePassColor('from-slate-800 via-slate-900 to-black', 'Charbon Élégant')" class="p-3 rounded-xl bg-gradient-to-br from-slate-800 to-black text-left text-[11px] font-bold text-white border border-slate-700">
+                Charbon
+              </button>
+            </div>
+          </div>
+
+          <!-- Aperçu en direct (Live Preview) -->
+          <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-3">
+            <span class="text-xs font-extrabold uppercase text-slate-400 tracking-wider">Aperçu en direct (Vue Client) :</span>
+            
+            <div id="live-card-preview" class="p-6 rounded-3xl bg-gradient-to-br from-violet-700 via-indigo-900 to-slate-950 border border-white/20 shadow-2xl space-y-4 text-white">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-[10px] font-bold uppercase tracking-widest text-white/70">ShopBoost Pass</span>
+                  <h4 id="preview-shop-name" class="text-lg font-black mt-0.5">Boulangerie Centrale</h4>
+                  <span id="preview-shop-type" class="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-semibold">Boulangerie</span>
+                </div>
+                <span class="text-xs font-extrabold text-amber-300">★ VIP</span>
+              </div>
+
+              <div class="py-4 text-center">
+                <span class="text-3xl font-black tracking-tight">65 pts</span>
+                <span class="text-xs text-white/70 block">Niveau Confirmé</span>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] font-bold text-white/80">
+                  <span>Prochain cadeau à 70 pts</span>
+                  <span>Plus que 5 pts</span>
+                </div>
+                <div class="w-full bg-black/40 h-2 rounded-full overflow-hidden">
+                  <div class="bg-amber-400 h-full w-[65%]"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 7. LOGIQUE JAVASCRIPT APPLICATIVE          -->
+  <!-- ========================================== -->
+  <script>
+    const SUPABASE_URL = "https://prdbfryilqhtcrojpoht.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_mZj9GYBc8IJkfaiW3JTmsQ_ZvmCCmKd";
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let html5QrCode = null;
+    let currentUser = null;
+    let activeCardIndex = 0;
+
+    // Liens Stripe
+    const STRIPE_LINKS = {
+      solo_monthly: "https://buy.stripe.com/test_3cI9AVb4PfRQbna12wcfK01",
+      multi_monthly: "https://buy.stripe.com/test_14A3cxa0LdJI0IwcLecfK02",
+      solo_yearly: "https://buy.stripe.com/test_14AdRb8WHgVUaj66mQcfK03",
+      multi_yearly: "https://buy.stripe.com/test_14A00l0qbcFEgHubHacfK04"
+    };
+
+    // Données de simulation portefeuille multi-commerces (Apple Wallet)
+    const CLIENT_WALLET = [
+      {
+        id: "boulangerie",
+        shopName: "Boulangerie Centrale",
+        type: "Boulangerie / Pâtisserie",
+        points: 45,
+        color: "from-violet-700 via-indigo-900 to-slate-950",
+        tiers: [
+          { pts: 20, reward: "Un croissant ou café" },
+          { pts: 40, reward: "Une baguette tradition" },
+          { pts: 70, reward: "Formule Sandwich midi" },
+          { pts: 100, reward: "Grande galette ou gâteau 4p" }
+        ]
+      },
+      {
+        id: "barber",
+        shopName: "Salon Tendance Coiffure",
+        type: "Salon de coiffure / Barbier",
+        points: 85,
+        color: "from-amber-600 via-amber-900 to-slate-950",
+        tiers: [
+          { pts: 20, reward: "Shampoing traitant" },
+          { pts: 40, reward: "Taille de barbe express" },
+          { pts: 70, reward: "-50% sur votre coupe" },
+          { pts: 100, reward: "Coupe + Soin complet offert" }
+        ]
+      },
+      {
+        id: "burger",
+        shopName: "Le Burger Gourmand",
+        type: "Restaurant / Snack / Fast Food",
+        points: 15,
+        color: "from-emerald-700 via-teal-900 to-slate-950",
+        tiers: [
+          { pts: 20, reward: "Frites maison offertes" },
+          { pts: 40, reward: "Boisson artisanale au choix" },
+          { pts: 70, reward: "Burger classique offert" },
+          { pts: 100, reward: "Menu Maxi + Dessert offert" }
+        ]
+      }
+    ];
+
+    // Données clients pour le répertoire commerçant
+    let MERCHANTS_CLIENTS = [
+      { id: "c1", name: "Alex Martin", phone: "06 12 34 56 78", points: 45, vip: false },
+      { id: "c2", name: "Sarah Benali", phone: "06 98 76 54 32", points: 85, vip: true },
+      { id: "c3", name: "Thomas Leroy", phone: "07 11 22 33 44", points: 20, vip: false },
+      { id: "c4", name: "Julie Dupuis", phone: "06 55 44 33 22", points: 110, vip: true }
+    ];
+
+    // GESTION DES VUES PRINCIPALES
+    function hideAllViews() {
+      if (html5QrCode && html5QrCode.isScanning) stopScanner();
+      ['view-portal', 'view-client-auth', 'view-client-dashboard', 'view-merchant-auth', 'view-merchant-paywall', 'view-merchant-dashboard'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+    }
+
+    function showView(view) {
+      hideAllViews();
+      const target = document.getElementById(`view-${view}`);
+      if (target) target.classList.remove('hidden');
+
+      // Masquer le header sur le dashboard commerçant pour maximiser l'espace
+      document.getElementById('global-header').classList.toggle('hidden', view === 'merchant-dashboard');
+
+      if (view === 'client-dashboard') renderWalletStack();
+      if (view === 'merchant-dashboard') initMerchantDashboard();
+    }
+
+    // AUTH TOGGLES
+    function toggleClientAuth(tab) {
+      const isSignup = tab === 'signup';
+      document.getElementById('form-client-signup').classList.toggle('hidden', !isSignup);
+      document.getElementById('form-client-login').classList.toggle('hidden', isSignup);
+      document.getElementById('client-tab-signup').className = isSignup ? "flex-1 pb-3 text-center text-xs font-bold text-emerald-400 border-b-2 border-emerald-400" : "flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white";
+      document.getElementById('client-tab-login').className = !isSignup ? "flex-1 pb-3 text-center text-xs font-bold text-emerald-400 border-b-2 border-emerald-400" : "flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white";
+    }
+
+    function toggleMerchantAuth(tab) {
+      const isSignup = tab === 'signup';
+      document.getElementById('form-merchant-signup').classList.toggle('hidden', !isSignup);
+      document.getElementById('form-merchant-login').classList.toggle('hidden', isSignup);
+      document.getElementById('m-tab-signup').className = isSignup ? "flex-1 pb-3 text-center text-xs font-bold text-indigo-400 border-b-2 border-indigo-500" : "flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white";
+      document.getElementById('m-tab-login').className = !isSignup ? "flex-1 pb-3 text-center text-xs font-bold text-indigo-400 border-b-2 border-indigo-500" : "flex-1 pb-3 text-center text-xs font-bold text-slate-400 hover:text-white";
+    }
+
+    // ACTIONS AUTH CLIENT
+    async function handleCustomerSignUp(e) {
+      e.preventDefault();
+      const name = document.getElementById('c-signup-name').value.trim();
+      const phone = document.getElementById('c-signup-phone').value.trim();
+      const email = document.getElementById('c-signup-email').value.trim();
+      const password = document.getElementById('c-signup-password').value;
+
+      const { data, error } = await db.auth.signUp({
+        email: email,
+        password: password,
+        options: { data: { full_name: name, phone: phone, role: 'customer' }, emailRedirectTo: window.location.origin }
+      });
+
+      if (error) return alert("Erreur d'inscription : " + error.message);
+
+      alert("Portefeuille créé ! Cliquez sur le lien reçu par email pour valider votre compte.");
+      showView('client-dashboard');
+      document.getElementById('client-user-name').innerText = name;
+    }
+
+    async function handleCustomerSignIn(e) {
+      e.preventDefault();
+      const email = document.getElementById('c-login-email').value.trim();
+      const password = document.getElementById('c-login-password').value;
+
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if (error) return alert("Erreur : " + error.message);
+
+      currentUser = data.user;
+      document.getElementById('client-user-name').innerText = data.user.user_metadata?.full_name || email;
+      showView('client-dashboard');
+    }
+
+    // RENDU PORTEFEUILLE CLIENT (APPLE WALLET STACK)
+    function renderWalletStack() {
+      const stackContainer = document.getElementById('wallet-cards-stack');
+      stackContainer.innerHTML = '';
+      document.getElementById('cards-count-label').innerText = `${CLIENT_WALLET.length} commerces`;
+
+      CLIENT_WALLET.forEach((card, index) => {
+        const isVip = card.points >= 50;
+        const cardElem = document.createElement('div');
+        cardElem.className = `wallet-card p-5 rounded-3xl bg-gradient-to-br ${card.color} border border-white/20 shadow-xl relative overflow-hidden select-none`;
+        cardElem.onclick = () => openActiveCard(index);
+
+        cardElem.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-widest text-white/70">ShopBoost Pass</span>
+              <h3 class="text-base font-black text-white mt-0.5">${card.shopName}</h3>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-semibold text-white/90">${card.type}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-xl font-black text-white">${card.points}</span>
+              <span class="text-[10px] text-white/80 block font-bold">POINTS</span>
+              ${isVip ? '<span class="text-[9px] font-black text-amber-300">★ VIP</span>' : ''}
+            </div>
+          </div>
+          <div class="mt-8 flex justify-between items-center text-[10px] text-white/80 font-bold">
+            <span>Toucher pour afficher le QR code</span>
+            <span>Objectif 100 pts →</span>
+          </div>
+        `;
+        stackContainer.appendChild(cardElem);
+      });
+    }
+
+    function openActiveCard(index) {
+      activeCardIndex = index;
+      const card = CLIENT_WALLET[index];
+
+      document.getElementById('active-card-shop').innerText = card.shopName;
+      document.getElementById('active-card-category').innerText = card.type;
+      document.getElementById('active-card-points').innerText = `${card.points} pts`;
+      document.getElementById('active-card-vip-badge').innerText = card.points >= 50 ? "★ Membre Privilège VIP (+50 pts)" : "Membre Standard";
+
+      // Progression
+      const pct = Math.min((card.points / 100) * 100, 100);
+      document.getElementById('active-card-progressbar').style.width = `${pct}%`;
+      const nextTier = card.tiers.find(t => t.pts > card.points);
+      document.getElementById('active-card-next-reward').innerText = nextTier ? `Plus que ${nextTier.pts - card.points} pts avant : ${nextTier.reward}` : "Tous les paliers débloqués !";
+
+      // QR Code local
+      const qrBox = document.getElementById('active-card-qrcode');
+      qrBox.innerHTML = '';
+      new QRCode(qrBox, {
+        text: `SHOPBOOST:${currentUser ? currentUser.id : 'demo-client'}:${card.id}`,
+        width: 170,
+        height: 170,
+        colorDark: "#020617",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      // Paliers de cadeaux
+      const tiersContainer = document.getElementById('active-card-tiers-list');
+      tiersContainer.innerHTML = card.tiers.map(t => {
+        const unlocked = card.points >= t.pts;
+        return `
+          <div class="p-2.5 rounded-xl border flex justify-between items-center ${unlocked ? 'bg-amber-500/10 border-amber-500/50' : 'bg-slate-950 border-slate-800 opacity-60'}">
+            <div>
+              <span class="text-[9px] font-extrabold uppercase ${unlocked ? 'text-amber-400' : 'text-slate-500'}">Palier ${t.pts} pts</span>
+              <p class="font-bold text-white text-[11px]">${t.reward}</p>
+            </div>
+            ${unlocked ? '<span class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-black text-[10px]">Disponible</span>' : `<span class="text-[10px] text-slate-500 font-semibold">${t.pts - card.points} restants</span>`}
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('active-card-modal').classList.remove('hidden');
+    }
+
+    function closeActiveCard() {
+      document.getElementById('active-card-modal').classList.add('hidden');
+    }
+
+    // ACTIONS AUTH COMMERÇANT
+    async function handleMerchantSignUp(e) {
+      e.preventDefault();
+      const shopName = document.getElementById('m-signup-name').value.trim();
+      const shopType = document.getElementById('m-signup-type').value;
+      const email = document.getElementById('m-signup-email').value.trim();
+      const password = document.getElementById('m-signup-password').value;
+
+      const { data, error } = await db.auth.signUp({
+        email: email,
+        password: password,
+        options: { data: { shop_name: shopName, shop_type: shopType, role: 'merchant' }, emailRedirectTo: window.location.origin }
+      });
+
+      if (error) return alert("Erreur d'inscription : " + error.message);
+
+      localStorage.setItem('shopboost_merchant_shop', shopName);
+      localStorage.setItem('shopboost_merchant_type', shopType);
+
+      alert("Compte commerçant créé avec succès ! Veuillez consulter vos emails pour valider votre compte.");
+      showView('merchant-paywall');
+    }
+
+    async function handleMerchantSignIn(e) {
+      e.preventDefault();
+      const email = document.getElementById('m-login-email').value.trim();
+      const password = document.getElementById('m-login-password').value;
+
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if (error) return alert("Connexion impossible : " + error.message);
+
+      currentUser = data.user;
+      showView('merchant-paywall');
+    }
+
+    // PAYWALL DYNAMIQUE STRIPE
+    function setPaywallCycle(cycle) {
+      const isYearly = cycle === 'yearly';
+      document.getElementById('pw-monthly-btn').className = !isYearly ? "px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition shadow" : "px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition";
+      document.getElementById('pw-yearly-btn').className = isYearly ? "px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white transition shadow" : "px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition";
+
+      if (isYearly) {
+        document.getElementById('pw-solo-price').innerText = "99€";
+        document.getElementById('pw-solo-period').innerText = "/ an";
+        document.getElementById('pw-solo-trial').innerText = "30 jours offerts (0 € aujourd'hui)";
+        document.getElementById('pw-solo-btn').href = STRIPE_LINKS.solo_yearly;
+
+        document.getElementById('pw-multi-price').innerText = "149€";
+        document.getElementById('pw-multi-period').innerText = "/ an";
+        document.getElementById('pw-multi-trial').innerText = "30 jours offerts (0 € aujourd'hui)";
+        document.getElementById('pw-multi-btn').href = STRIPE_LINKS.multi_yearly;
+      } else {
+        document.getElementById('pw-solo-price').innerText = "9,99€";
+        document.getElementById('pw-solo-period').innerText = "/ mois";
+        document.getElementById('pw-solo-trial').innerText = "14 jours offerts (0 € aujourd'hui)";
+        document.getElementById('pw-solo-btn').href = STRIPE_LINKS.solo_monthly;
+
+        document.getElementById('pw-multi-price').innerText = "14,99€";
+        document.getElementById('pw-multi-period').innerText = "/ mois";
+        document.getElementById('pw-multi-trial').innerText = "14 jours offerts (0 € aujourd'hui)";
+        document.getElementById('pw-multi-btn').href = STRIPE_LINKS.multi_monthly;
+      }
+    }
+
+    function unlockMerchantDashboard() {
+      showView('merchant-dashboard');
+    }
+
+    // GESTION DU DASHBOARD COMMERÇANT
+    function initMerchantDashboard() {
+      const shopName = localStorage.getItem('shopboost_merchant_shop') || "Boulangerie Centrale";
+      const shopType = localStorage.getItem('shopboost_merchant_type') || "Boulangerie / Pâtisserie";
+
+      document.getElementById('sidebar-shop-name').innerText = shopName;
+      document.getElementById('sidebar-shop-type').innerText = shopType;
+      document.getElementById('preview-shop-name').innerText = shopName;
+      document.getElementById('preview-shop-type').innerText = shopType.split('/')[0];
+
+      renderRecentScans();
+      renderClientsTable();
+      calculatePointsFromAmount();
+    }
+
+    function switchMerchantTab(tabId) {
+      ['tab-dashboard', 'tab-pos', 'tab-clients', 'tab-rewards', 'tab-promos', 'tab-settings'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+        const navBtn = document.getElementById(`nav-btn-${id.replace('tab-', '')}`);
+        if (navBtn) navBtn.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition";
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById(`nav-btn-${tabId.replace('tab-', '')}`);
+      if (activeBtn) activeBtn.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition";
+
+      if (tabId === 'tab-pos') startScanner();
+      else stopScanner();
+    }
+
+    // CALCULATEUR DE POINTS : 1€ = 1 POINT (Arrondi à 0,50€)
+    function calculatePointsFromAmount() {
+      const val = parseFloat(document.getElementById('pos-amount-input').value) || 0;
+      const pts = Math.round(val);
+      document.getElementById('pos-points-preview').innerText = `+${pts} pts`;
+      return pts;
+    }
+
+    // SCANNER OPTIQUE CAMÉRA
+    async function startScanner() {
+      const container = document.getElementById('reader');
+      document.getElementById('reader-placeholder').classList.add('hidden');
+      document.getElementById('start-scan-btn').classList.add('hidden');
+      document.getElementById('stop-scan-btn').classList.remove('hidden');
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+      }
+      try {
+        await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, onScanSuccess);
+      } catch (err) {
+        console.warn("Caméra indisponible ou permission refusée", err);
+      }
+    }
+
+    async function stopScanner() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        await html5QrCode.stop();
+      }
+      document.getElementById('reader-placeholder').classList.remove('hidden');
+      document.getElementById('start-scan-btn').classList.remove('hidden');
+      document.getElementById('stop-scan-btn').classList.add('hidden');
+    }
+
+    function onScanSuccess(decodedText) {
+      stopScanner();
+      const pointsToAdd = calculatePointsFromAmount();
+
+      const feedback = document.getElementById('scan-feedback');
+      feedback.classList.remove('hidden');
+      feedback.className = "p-4 rounded-2xl bg-emerald-500/20 border-emerald-500 text-emerald-300 text-left";
+      feedback.innerHTML = `
+        <p class="font-black text-sm">✅ PASS CLIENT VALIDÉ</p>
+        <p class="text-xs mt-1">Identifiant : <span class="font-mono text-white">${decodedText}</span></p>
+        <p class="text-xs mt-1">Montant encaissé : <strong>${document.getElementById('pos-amount-input').value} €</strong></p>
+        <p class="text-xs font-extrabold text-white mt-1">Points crédités : <span class="text-emerald-400">+${pointsToAdd} points</span></p>
+      `;
+
+      // Mise à jour stats
+      const currentScans = parseInt(document.getElementById('stat-total-scans').innerText);
+      document.getElementById('stat-total-scans').innerText = currentScans + 1;
+    }
+
+    // GESTION DU RÉPERTOIRE CLIENTS
+    function renderClientsTable(filteredList = MERCHANTS_CLIENTS) {
+      const tbody = document.getElementById('clients-table-body');
+      tbody.innerHTML = filteredList.map(c => `
+        <tr class="hover:bg-slate-950/50 transition">
+          <td class="px-4 py-3 font-bold text-white">${c.name}</td>
+          <td class="px-4 py-3 font-mono text-slate-400">${c.phone}</td>
+          <td class="px-4 py-3 font-extrabold text-indigo-400">${c.points} pts</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.points >= 50 ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-400'}">
+              ${c.points >= 50 ? '★ Membre VIP' : 'Standard'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-right">
+            <button onclick="quickAddPoints('${c.id}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-[11px] transition">
+              +10 pts
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      document.getElementById('stat-total-clients').innerText = MERCHANTS_CLIENTS.length;
+    }
+
+    function filterClientsList() {
+      const query = document.getElementById('clients-search-input').value.toLowerCase();
+      const filtered = MERCHANTS_CLIENTS.filter(c => c.name.toLowerCase().includes(query) || c.phone.includes(query));
+      renderClientsTable(filtered);
+    }
+
+    function setClientsFilter(filter) {
+      document.getElementById('filter-btn-all').className = filter === 'all' ? "px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white" : "px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-slate-400";
+      document.getElementById('filter-btn-vip').className = filter === 'vip' ? "px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white" : "px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-slate-400";
+
+      if (filter === 'vip') renderClientsTable(MERCHANTS_CLIENTS.filter(c => c.points >= 50));
+      else renderClientsTable(MERCHANTS_CLIENTS);
+    }
+
+    function openNewClientModal() {
+      const name = prompt("Prénom et Nom du nouveau client :");
+      if (!name) return;
+      const phone = prompt("Numéro de téléphone :", "06 ");
+      if (!phone) return;
+
+      MERCHANTS_CLIENTS.unshift({
+        id: "c" + (MERCHANTS_CLIENTS.length + 1),
+        name: name,
+        phone: phone,
+        points: 10, // Bonus de 10 points à l'adhésion
+        vip: false
+      });
+      renderClientsTable();
+      alert(`Client ${name} inscrit avec succès avec son bonus de +10 points offerts !`);
+    }
+
+    function quickAddPoints(clientId) {
+      const client = MERCHANTS_CLIENTS.find(c => c.id === clientId);
+      if (client) {
+        client.points += 10;
+        renderClientsTable();
+      }
+    }
+
+    function renderRecentScans() {
+      const list = document.getElementById('recent-scans-list');
+      list.innerHTML = `
+        <div class="py-2.5 flex justify-between items-center">
+          <div><p class="font-bold text-white">Alex Martin</p><p class="text-[11px] text-slate-500">Ticket 12,80 € • Il y a 10 min</p></div>
+          <span class="font-extrabold text-emerald-400">+13 pts</span>
+        </div>
+        <div class="py-2.5 flex justify-between items-center">
+          <div><p class="font-bold text-white">Sarah Benali</p><p class="text-[11px] text-slate-500">Ticket 45,00 € • Il y a 42 min</p></div>
+          <span class="font-extrabold text-emerald-400">+45 pts</span>
+        </div>
+      `;
+    }
+
+    // COULEURS & PERSONNALISATION DU PASS
+    function changePassColor(gradientClass, colorName) {
+      const preview = document.getElementById('live-card-preview');
+      preview.className = `p-6 rounded-3xl bg-gradient-to-br ${gradientClass} border border-white/20 shadow-2xl space-y-4 text-white transition-all duration-300`;
+      localStorage.setItem('shopboost_pass_color', gradientClass);
+      alert(`Couleur du pass mise à jour : ${colorName} ! Vos clients verront cette teinte.`);
+    }
+
+    function saveMerchantRewards() {
+      alert("Catalogue des 4 paliers sauvegardé avec succès !");
+    }
+
+    function handleCreatePromo(e) {
+      e.preventDefault();
+      alert("Promotion lancée ! Elle est désormais active pour vos clients.");
+    }
+
+    async function handleSignOut() {
+      await db.auth.signOut();
+      currentUser = null;
+      showView('portal');
+    }
+
+    // Gestion de session initiale
+    db.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        currentUser = session.user;
+        const role = currentUser.user_metadata?.role;
+        if (role === 'customer') showView('client-dashboard');
+        else if (role === 'merchant') showView('merchant-paywall');
+      }
+    });
+  </script>
+</body>
+</html>
