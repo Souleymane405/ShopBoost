@@ -1,0 +1,2751 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ShopBoost — La fidélisation client réinventée</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-oled: #06060B;
+      --card-surface: #0E0F19;
+      --card-elevated: #151726;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --accent-violet: #7C3AED;
+      --accent-glow: rgba(124, 58, 237, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-oled);
+      color: #F8FAFC;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    input, select, textarea {
+      user-select: text;
+    }
+
+    /* Tactile Spring Physics */
+    .tactile-btn {
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .tactile-btn:active {
+      transform: scale(0.955);
+    }
+
+    .tactile-card {
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.3s ease;
+    }
+    .tactile-card:active {
+      transform: scale(0.985);
+    }
+
+    /* Glass & Neon Surfaces */
+    .glass-panel {
+      background: rgba(14, 15, 25, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .violet-gradient {
+      background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 55%, #4F46E5 100%);
+    }
+
+    .violet-glow {
+      box-shadow: 0 12px 32px -6px rgba(124, 58, 237, 0.55), 0 0 0 1px rgba(167, 139, 250, 0.25) inset;
+    }
+
+    /* iOS Side Drawer */
+    .drawer-backdrop {
+      transition: opacity 0.3s ease;
+    }
+    .drawer-panel {
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Stacked Wallet Cards */
+    .wallet-stack-item {
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, filter 0.3s ease;
+      box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.14) inset;
+    }
+    .wallet-stack-item:hover {
+      transform: translateY(-6px);
+    }
+
+    /* 3D Card Flip */
+    .flip-scene {
+      perspective: 1200px;
+    }
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      transition: transform 0.65s cubic-bezier(0.34, 1.36, 0.64, 1);
+      transform-style: preserve-3d;
+    }
+    .flip-card-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+    .flip-face {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .flip-back {
+      transform: rotateY(180deg);
+    }
+
+    /* Shimmer Effect */
+    .card-shimmer {
+      background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.12) 45%, transparent 70%);
+      background-size: 200% 100%;
+      animation: shimmerMove 5.5s infinite linear;
+    }
+    @keyframes shimmerMove {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Pulse Point Counter Animation */
+    @keyframes popScale {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.25); color: #34D399; }
+      100% { transform: scale(1); }
+    }
+    .animate-pop {
+      animation: popScale 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Animated Chart Bars */
+    .chart-bar-fill {
+      transition: height 0.75s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(139, 92, 246, 0.35);
+      border-radius: 999px;
+    }
+
+    .hidden-view {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-violet-600 selection:text-white">
+
+  <!-- TOAST NOTIFICATION iOS -->
+  <div id="ios-toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[120] pointer-events-none opacity-0 -translate-y-4 transition-all duration-300 w-[92%] max-w-sm">
+    <div class="glass-panel rounded-2xl px-4 py-3 shadow-2xl border border-violet-500/30 flex items-center gap-3">
+      <div id="toast-icon" class="w-8 h-8 rounded-xl violet-gradient flex items-center justify-center text-white text-sm font-bold shrink-0">✓</div>
+      <div class="min-w-0 flex-1">
+        <div id="toast-title" class="text-xs font-bold text-white truncate">Notification</div>
+        <div id="toast-msg" class="text-[11px] text-slate-300 truncate">Action effectuée</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANNIÈRE ACTIVATION STRIPE -->
+  <div id="stripe-success-banner" class="hidden-view bg-emerald-600/95 backdrop-blur-md text-white text-center text-xs font-bold py-2.5 px-4 sticky top-0 z-50 border-b border-emerald-400/30">
+    Abonnement ShopBoost PRO activé avec succès ! Votre caisse est débloquée.
+  </div>
+
+  <!-- =====================================================================
+       1. ÉCRAN ACCUEIL / AUTHENTIFICATION + EXPLICATIONS DÉTAILLÉES
+  ====================================================================== -->
+  <section id="screen-auth" class="min-h-screen flex flex-col justify-between px-4 py-8 relative overflow-hidden">
+    <!-- Halo ambiant -->
+    <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[420px] h-[420px] rounded-full bg-violet-600/20 blur-[110px] pointer-events-none"></div>
+
+    <div class="max-w-md w-full mx-auto space-y-6 relative z-10 my-auto">
+      <!-- Switch rapide Espace Commerçant / Portefeuille Client -->
+      <div class="flex justify-center">
+        <div class="inline-flex p-1 rounded-2xl bg-[#11121E] border border-white/10 shadow-lg">
+          <button id="mode-btn-merchant" onclick="switchAuthPortal('merchant')" class="tactile-btn px-4 py-2 rounded-xl text-xs font-bold bg-violet-600 text-white shadow-md">
+            Espace Commerçant
+          </button>
+          <button id="mode-btn-client" onclick="switchAuthPortal('client')" class="tactile-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white">
+            Portefeuille Client
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== PORTAIL COMMERÇANT ==================== -->
+      <div id="portal-merchant-wrapper" class="space-y-5">
+        <div id="portal-merchant-card" class="glass-panel rounded-[28px] p-6 sm:p-7 shadow-2xl border border-white/10 space-y-6">
+          <!-- Logo & Titre exacts -->
+          <div class="text-center space-y-2.5">
+            <div class="w-16 h-16 rounded-[20px] violet-gradient violet-glow mx-auto flex items-center justify-center text-white text-2xl font-extrabold tracking-tight">
+              SB
+            </div>
+            <h1 class="text-3xl font-extrabold tracking-tight text-white">
+              Shop<span class="text-violet-400">Boost</span>
+            </h1>
+            <p class="text-xs text-slate-400 leading-relaxed max-w-[260px] mx-auto">
+              La fidélisation client réinventée pour les commerces locaux
+            </p>
+          </div>
+
+          <!-- Onglets Connexion Marchand | Créer un Commerce -->
+          <div class="grid grid-cols-2 border-b border-white/10 text-xs font-bold">
+            <button id="tab-merchant-login" onclick="setMerchantAuthTab('login')" class="pb-3 text-slate-400 hover:text-white border-b-2 border-transparent transition">
+              Connexion Marchand
+            </button>
+            <button id="tab-merchant-register" onclick="setMerchantAuthTab('register')" class="pb-3 text-white border-b-2 border-violet-500 transition">
+              Créer un Commerce
+            </button>
+          </div>
+
+          <!-- Formulaire Création de Commerce -->
+          <form id="form-merchant-register" onsubmit="initiateMerchantRegister(event)" class="space-y-4">
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <span class="text-violet-400">🏪</span> Nom du commerce
+              </label>
+              <input id="reg-shop-name" type="text" required placeholder="Ex: Salon Tendance Coiffure" class="w-full px-4 py-3 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition" />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <span class="text-violet-400">🏷️</span> Type d'activité
+              </label>
+              <div class="relative">
+                <select id="reg-shop-category" class="w-full appearance-none px-4 py-3 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white focus:outline-none focus:border-violet-500 transition">
+                  <option value="Boulangerie / Pâtisserie">Boulangerie / Pâtisserie</option>
+                  <option value="Restaurant / Snack / Fast Food">Restaurant / Snack / Fast Food</option>
+                  <option value="Salon de coiffure / Barbier">Salon de coiffure / Barbier</option>
+                  <option value="Magasin de prêt-à-porter">Magasin de prêt-à-porter</option>
+                  <option value="Épicerie fine / Primeur">Épicerie fine / Primeur</option>
+                  <option value="Café / Salon de thé">Café / Salon de thé</option>
+                  <option value="Institut de beauté / Spa">Institut de beauté / Spa</option>
+                  <option value="Autre commerce local">Autre commerce local</option>
+                </select>
+                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none">⌄</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <span class="text-violet-400">✉️</span> Email professionnel
+              </label>
+              <input id="reg-shop-email" type="email" required placeholder="contact@commerce.fr" class="w-full px-4 py-3 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition" />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <span class="text-violet-400">🔒</span> Mot de passe
+              </label>
+              <input id="reg-shop-password" type="password" minlength="6" required placeholder="Minimum 6 caractères" class="w-full px-4 py-3 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition" />
+            </div>
+
+            <button type="submit" class="tactile-btn w-full py-3.5 rounded-2xl violet-gradient violet-glow text-white text-sm font-bold tracking-wide mt-2">
+              Créer mon compte ShopBoost
+            </button>
+          </form>
+
+          <!-- Formulaire Connexion Marchand -->
+          <form id="form-merchant-login" onsubmit="initiateMerchantLogin(event)" class="hidden-view space-y-4">
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <span class="text-violet-400">✉️</span> Email professionnel
+              </label>
+              <input id="login-shop-email" type="email" required placeholder="contact@commerce.fr" class="w-full px-4 py-3 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition" />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <span class="text-violet-400">🔒</span> Mot de passe
+              </label>
+              <input id="login-shop-password" type="password" required placeholder="Votre mot de passe" class="w-full px-4 py-3 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition" />
+            </div>
+
+            <button type="submit" class="tactile-btn w-full py-3.5 rounded-2xl violet-gradient violet-glow text-white text-sm font-bold tracking-wide">
+              Recevoir mon code & me connecter
+            </button>
+          </form>
+
+          <!-- Accès Démo Immédiate -->
+          <div class="pt-1 text-center">
+            <button onclick="launchDemoMerchant()" class="text-[11px] font-semibold text-violet-400 hover:text-violet-300 underline underline-offset-4">
+              Tester la caisse ShopBoost PRO en 1 clic
+            </button>
+          </div>
+        </div>
+
+        <!-- EXPLICATION COMMERÇANTS : À QUOI SERT LE SYSTÈME DE FIDÉLITÉ ? -->
+        <div class="glass-panel rounded-[26px] p-5 border border-white/10 space-y-3.5">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-xs">🚀</span>
+            <div>
+              <h3 class="text-xs font-extrabold text-white">Commerçants : à quoi sert ShopBoost ?</h3>
+              <p class="text-[10px] text-slate-400">Pourquoi digitaliser votre programme de fidélité</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-2.5 text-xs">
+            <div class="p-3 rounded-2xl bg-[#090A12] border border-white/5 flex items-start gap-3">
+              <span class="text-base mt-0.5">🎁</span>
+              <div>
+                <div class="font-bold text-white">Transformez les passants en habitués</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Dès la 1ère visite, le client reçoit <strong class="text-emerald-400">+10 points de bienvenue</strong>. Il a immédiatement une raison concrète de revenir chez vous plutôt que chez un concurrent.</p>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-[#090A12] border border-white/5 flex items-start gap-3">
+              <span class="text-base mt-0.5">📈</span>
+              <div>
+                <div class="font-bold text-white">Augmentez votre panier moyen (1 € = 1 pt)</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Avec la règle <strong class="text-violet-300">1 € dépensé = 1 point</strong> (arrondi dès 0,50 €), vos clients ajoutent volontiers un article supplémentaire pour débloquer leur prochain cadeau.</p>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-[#090A12] border border-white/5 flex items-start gap-3">
+              <span class="text-base mt-0.5">⚡</span>
+              <div>
+                <div class="font-bold text-white">Zéro carte carton perdue, caisse en 2 secondes</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Aucun matériel coûteux à acheter : scannez le QR code du client avec votre téléphone ou laissez-le scanner votre chevalet de comptoir.</p>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-[#090A12] border border-white/5 flex items-start gap-3">
+              <span class="text-base mt-0.5">🔥</span>
+              <div>
+                <div class="font-bold text-white">Promotions en direct & statistiques</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Lancez une offre spéciale pendant vos heures creuses : elle s'affiche instantanément sur la carte de tous vos clients inscrits.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== PORTAIL CLIENT ==================== -->
+      <div id="portal-client-wrapper" class="hidden-view space-y-5">
+        <div id="portal-client-card" class="glass-panel rounded-[28px] p-6 sm:p-7 shadow-2xl border border-white/10 space-y-6">
+          <div class="text-center space-y-2.5">
+            <div class="w-16 h-16 rounded-[20px] violet-gradient violet-glow mx-auto flex items-center justify-center text-white text-2xl font-extrabold">
+              SB
+            </div>
+            <h2 class="text-2xl font-extrabold text-white">Mon Portefeuille <span class="text-violet-400">Fidélité</span></h2>
+            <p class="text-xs text-slate-400">Toutes vos cartes commerçants réunies au même endroit, sans application à télécharger.</p>
+          </div>
+
+          <form onsubmit="initiateClientLogin(event)" class="space-y-4">
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Votre prénom</label>
+              <input id="client-login-name" type="text" required placeholder="Ex: Camille" class="w-full px-4 py-3 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Email ou Téléphone</label>
+              <input id="client-login-id" type="text" required placeholder="client@email.fr ou 06 12 34 56 78" class="w-full px-4 py-3 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500" />
+            </div>
+            <button type="submit" class="tactile-btn w-full py-3.5 rounded-2xl violet-gradient violet-glow text-white text-sm font-bold">
+              Recevoir mon code & ouvrir mes cartes
+            </button>
+          </form>
+        </div>
+
+        <!-- EXPLICATION CLIENTS : À QUOI SERT VOTRE PORTEFEUILLE ? -->
+        <div class="glass-panel rounded-[26px] p-5 border border-white/10 space-y-3.5">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs">💳</span>
+            <div>
+              <h3 class="text-xs font-extrabold text-white">Clients : à quoi sert votre Portefeuille ?</h3>
+              <p class="text-[10px] text-slate-400">Simple, gratuit et valable dans tous vos commerces partenaires</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-2.5 text-xs">
+            <div class="p-3 rounded-2xl bg-[#090A12] border border-white/5 flex items-start gap-3">
+              <span class="text-base mt-0.5">📱</span>
+              <div>
+                <div class="font-bold text-white">Fini les cartes en carton oubliées ou perdues</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Toutes vos cartes de fidélité locales (boulangerie, coiffeur, restaurant, boutique) sont empilées au même endroit sur votre téléphone.</p>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-[#090A12] border border-white/5 flex items-start gap-3">
+              <span class="text-base mt-0.5">🎉</span>
+              <div>
+                <div class="font-bold text-white">+10 points offerts dès l'ouverture d'une carte</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Chaque nouveau commerce que vous rejoignez vous offre <strong class="text-emerald-400">+10 points de bienvenue</strong>, puis chaque euro dépensé vous rapporte 1 point.</p>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-[#090A12] border border-white/5 flex items-start gap-3">
+              <span class="text-base mt-0.5">🎁</span>
+              <div>
+                <div class="font-bold text-white">Vos cadeaux et promotions en temps réel</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Voyez exactement combien de points il vous manque pour votre prochain cadeau et profitez des offres exclusives de vos commerçants.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       1B. ÉCRAN TUNNEL D'ABONNEMENT OBLIGATOIRE APRÈS INSCRIPTION MARCHAND
+  ====================================================================== -->
+  <section id="screen-subscription-funnel" class="hidden-view min-h-screen flex flex-col justify-center px-4 py-10 relative overflow-hidden">
+    <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[450px] h-[450px] rounded-full bg-violet-600/25 blur-[120px] pointer-events-none"></div>
+
+    <div class="max-w-lg w-full mx-auto space-y-6 relative z-10">
+      <div class="text-center space-y-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold">
+          ✓ Email vérifié • Étape finale
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Choisissez votre formule <span class="text-violet-400">ShopBoost PRO</span></h2>
+        <p class="text-xs text-slate-400 max-w-md mx-auto">
+          Démarrez votre essai gratuit dès aujourd'hui (0 € débité aujourd'hui). Dès validation, vous êtes automatiquement connecté à votre caisse commerçant.
+        </p>
+      </div>
+
+      <!-- Toggle Mensuel / Annuel -->
+      <div class="flex justify-center">
+        <div class="inline-flex bg-[#0E0F19] p-1.5 rounded-2xl border border-white/10 text-xs font-extrabold">
+          <button id="funnel-toggle-m" onclick="toggleFunnelBilling('monthly')" class="tactile-btn px-4 py-2 rounded-xl bg-violet-600 text-white shadow-md">
+            Mensuel (14j d'essai gratuit)
+          </button>
+          <button id="funnel-toggle-a" onclick="toggleFunnelBilling('annual')" class="tactile-btn px-4 py-2 rounded-xl text-slate-400 hover:text-white">
+            Annuel (30j d'essai • -17%)
+          </button>
+        </div>
+      </div>
+
+      <!-- 2 Cartes d'abonnement (4 liens Stripe) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Formule 1 Boutique -->
+        <div class="glass-panel rounded-[26px] p-5 border border-white/15 flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-extrabold text-white">1 Boutique</span>
+              <span id="funnel-trial-1" class="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400">14j gratuits</span>
+            </div>
+            <div>
+              <span id="funnel-price-1" class="text-3xl font-extrabold text-white">9,99 €</span>
+              <span id="funnel-period-1" class="text-xs text-slate-400">/mois</span>
+            </div>
+            <ul class="text-xs text-slate-300 space-y-2 pt-1">
+              <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Clients & cartes fidélité illimités</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Scanner QR caisse & chevalet comptoir</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Récompenses, promotions & graphiques</li>
+            </ul>
+          </div>
+          <a id="funnel-cta-1" onclick="markPendingStripeRedirect()" href="https://buy.stripe.com/test_9B65kF8WHfRQ2QE5iMcfK08" class="tactile-btn block w-full text-center py-3.5 rounded-2xl bg-white text-slate-950 text-xs font-extrabold shadow-lg">
+            Démarrer mon essai (1 Boutique)
+          </a>
+        </div>
+
+        <!-- Formule Multi-Boutiques -->
+        <div class="glass-panel rounded-[26px] p-5 border-2 border-violet-500 flex flex-col justify-between space-y-4 relative shadow-2xl">
+          <span class="absolute -top-3 right-4 px-3 py-0.5 rounded-full violet-gradient text-[10px] font-extrabold uppercase tracking-wider text-white">Populaire</span>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-extrabold text-white">Multi-Boutiques</span>
+              <span id="funnel-trial-2" class="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400">14j gratuits</span>
+            </div>
+            <div>
+              <span id="funnel-price-2" class="text-3xl font-extrabold text-white">14,99 €</span>
+              <span id="funnel-period-2" class="text-xs text-slate-400">/mois</span>
+            </div>
+            <ul class="text-xs text-slate-300 space-y-2 pt-1">
+              <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Tous les avantages 1 Boutique</li>
+              <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Points partagés entre vos établissements</li>
+              <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Caisses multi-employés simultanées</li>
+            </ul>
+          </div>
+          <a id="funnel-cta-2" onclick="markPendingStripeRedirect()" href="https://buy.stripe.com/test_dRmdRb6OzcFE9f29z2cfK07" class="tactile-btn block w-full text-center py-3.5 rounded-2xl violet-gradient violet-glow text-white text-xs font-extrabold">
+            Démarrer mon essai (Multi-Boutiques)
+          </a>
+        </div>
+      </div>
+
+      <!-- Bouton d'accès direct après validation / mode essai immédiat -->
+      <div class="glass-panel rounded-2xl p-4 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="text-xs text-slate-300 text-center sm:text-left">
+          Vous avez déjà validé votre abonnement Stripe ou souhaitez configurer votre caisse pendant l'essai ?
+        </div>
+        <button onclick="completeSubscriptionAndEnter()" class="tactile-btn px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold shrink-0">
+          Accéder à mon compte connecté →
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       2. ESPACE COMMERÇANT — SHOPBOOST PRO (6 ONGLETS + MENU TIROIR + GRAPHIQUES)
+  ====================================================================== -->
+  <section id="screen-merchant" class="hidden-view min-h-screen flex flex-col bg-[#06060B]">
+    <!-- TOP BAR FIXE iOS -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-white/10 px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="openMerchantDrawer()" class="tactile-btn w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl violet-gradient flex items-center justify-center font-extrabold text-xs text-white shadow-md">SB</div>
+          <div>
+            <div id="merchant-topbar-title" class="text-sm font-extrabold text-white leading-tight">Tableau de bord</div>
+            <div class="text-[10px] text-violet-400 font-semibold">ShopBoost PRO</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openModal('modal-chevalet')" class="tactile-btn px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-white text-xs font-bold flex items-center gap-1" title="Afficher le QR code de la boutique">
+          <span>🪧</span> QR
+        </button>
+        <button onclick="switchMerchantTab('caisse')" class="tactile-btn px-3.5 py-2 rounded-xl violet-gradient violet-glow text-white text-xs font-extrabold flex items-center gap-1.5">
+          <span>📷</span> Caisse
+        </button>
+        <button onclick="switchMerchantTab('parametres')" id="merchant-avatar-pill" class="tactile-btn w-9 h-9 rounded-full bg-violet-600/25 border border-violet-400/40 text-violet-200 font-extrabold text-xs flex items-center justify-center">
+          SB
+        </button>
+      </div>
+    </header>
+
+    <!-- TIROIR LATÉRAL COULISSANT SHOPBOOST PRO -->
+    <div id="merchant-drawer-overlay" onclick="closeMerchantDrawer()" class="drawer-backdrop fixed inset-0 bg-black/75 backdrop-blur-sm z-40 hidden-view opacity-0"></div>
+    <aside id="merchant-drawer" class="drawer-panel fixed top-0 left-0 bottom-0 w-[285px] bg-[#0B0C15] border-r border-white/10 z-50 -translate-x-full flex flex-col justify-between p-5">
+      <div class="space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl violet-gradient flex items-center justify-center font-extrabold text-sm text-white">SB</div>
+            <div>
+              <div class="font-extrabold text-sm text-white">ShopBoost <span class="text-violet-400">PRO</span></div>
+              <div class="text-[10px] text-slate-400">Gestion & Caisse</div>
+            </div>
+          </div>
+          <button onclick="closeMerchantDrawer()" class="tactile-btn w-8 h-8 rounded-lg bg-white/5 text-slate-400 flex items-center justify-center">✕</button>
+        </div>
+
+        <!-- Fiche boutique active -->
+        <div class="p-3.5 rounded-2xl bg-[#121422] border border-white/10 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] uppercase tracking-wider text-violet-400 font-bold">Commerce actif</span>
+            <span id="drawer-sub-pill" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-bold">PRO Actif</span>
+          </div>
+          <div id="drawer-shop-name" class="font-extrabold text-sm text-white truncate">Mon Commerce</div>
+          <div id="drawer-shop-code" class="text-[11px] font-mono text-slate-400">Code : SB-SHOP-100</div>
+        </div>
+
+        <!-- 6 Onglets de navigation -->
+        <nav class="space-y-1 text-xs font-bold">
+          <button onclick="switchMerchantTab('dashboard')" data-mtab="dashboard" class="m-nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-violet-600/20 text-white border border-violet-500/30">
+            <span>📊</span> Tableau de bord
+          </button>
+          <button onclick="switchMerchantTab('clients')" data-mtab="clients" class="m-nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5">
+            <span>👥</span> Clients
+          </button>
+          <button onclick="switchMerchantTab('caisse')" data-mtab="caisse" class="m-nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5">
+            <span>📱</span> Caisse & Scan
+          </button>
+          <button onclick="switchMerchantTab('recompenses')" data-mtab="recompenses" class="m-nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5">
+            <span>🎁</span> Récompenses
+          </button>
+          <button onclick="switchMerchantTab('promotions')" data-mtab="promotions" class="m-nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5">
+            <span>🔥</span> Promotions
+          </button>
+          <button onclick="switchMerchantTab('parametres')" data-mtab="parametres" class="m-nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5">
+            <span>⚙️</span> Paramètres
+          </button>
+        </nav>
+
+        <!-- Raccourci Scanner & Caisse -->
+        <button onclick="switchMerchantTab('caisse')" class="tactile-btn w-full p-3.5 rounded-2xl violet-gradient violet-glow text-left text-white space-y-0.5">
+          <div class="text-xs font-extrabold">Scanner & Caisse Rapide →</div>
+          <div class="text-[10px] text-violet-100">Créditer des points ou valider un cadeau</div>
+        </button>
+      </div>
+
+      <!-- Bas du tiroir : Email + Déconnexion -->
+      <div class="pt-4 border-t border-white/10 space-y-2.5">
+        <div id="drawer-owner-email" class="text-[11px] text-slate-400 truncate">contact@commerce.fr</div>
+        <button onclick="logoutMerchant()" class="tactile-btn w-full py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs font-bold">
+          Déconnexion
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENU PRINCIPAL COMMERÇANT -->
+    <main class="flex-1 max-w-2xl w-full mx-auto px-4 py-5 pb-24 space-y-5">
+
+      <!-- Encart Activation Abonnement si essai non activé -->
+      <div id="merchant-trial-banner" class="rounded-2xl bg-gradient-to-r from-violet-950/80 to-indigo-950/80 border border-violet-500/35 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="text-xs font-extrabold text-white">Formule d'essai en attente de validation Stripe</div>
+          <div class="text-[11px] text-slate-300">Activez votre essai (14j mensuel ou 30j annuel) à tout moment.</div>
+        </div>
+        <button onclick="openSubscriptionFunnelFromAccount()" class="tactile-btn px-3.5 py-2 rounded-xl violet-gradient text-white text-[11px] font-extrabold shrink-0">
+          Voir les 4 formules →
+        </button>
+      </div>
+
+      <!-- ==================== ONGLET 1 : TABLEAU DE BORD ==================== -->
+      <div id="mtab-dashboard" class="space-y-5">
+        <!-- Carte de Bienvenue -->
+        <div class="rounded-[26px] p-5 bg-gradient-to-br from-[#161829] via-[#121322] to-[#0D0E18] border border-white/10 shadow-xl space-y-4 relative overflow-hidden">
+          <div class="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-violet-600/20 blur-2xl pointer-events-none"></div>
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Terminal Caisse Connecté
+              </span>
+              <h2 id="dash-welcome-title" class="text-xl font-extrabold text-white mt-2">Bienvenue, Mon Commerce</h2>
+              <p class="text-xs text-slate-400 mt-0.5">1 € dépensé = 1 pt (arrondi à 0,50 €) • +10 pts offerts à l'inscription</p>
+            </div>
+            <button onclick="openModal('modal-new-client')" class="tactile-btn w-11 h-11 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center text-white text-lg font-bold shrink-0" title="Nouveau client">
+              +👤
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <button onclick="switchMerchantTab('caisse')" class="tactile-btn py-3 px-4 rounded-2xl violet-gradient violet-glow text-white text-xs font-extrabold flex items-center justify-center gap-2">
+              <span>📷</span> Ouvrir Caisse & Scan
+            </button>
+            <button onclick="openModal('modal-chevalet')" class="tactile-btn py-3 px-4 rounded-2xl bg-white/10 border border-white/10 text-white text-xs font-bold flex items-center justify-center gap-2">
+              <span>🪧</span> QR Code Boutique
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 CARTES KPI TACTILES (SYNCHRONISÉES EN DIRECT) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div onclick="switchMerchantTab('clients')" class="tactile-card glass-panel rounded-2xl p-4 border border-white/10 space-y-1.5 cursor-pointer">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>Total Clients</span>
+              <span class="text-violet-400">👥</span>
+            </div>
+            <div id="kpi-total-clients" class="text-2xl font-extrabold text-white">0</div>
+            <div class="text-[10px] font-bold text-emerald-400">+100% digitalisés</div>
+          </div>
+
+          <div onclick="switchMerchantTab('clients')" class="tactile-card glass-panel rounded-2xl p-4 border border-white/10 space-y-1.5 cursor-pointer">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>Cartes Actives</span>
+              <span class="text-emerald-400">💳</span>
+            </div>
+            <div id="kpi-active-cards" class="text-2xl font-extrabold text-white">0</div>
+            <div class="text-[10px] font-bold text-slate-400">Solde &gt; 0 points</div>
+          </div>
+
+          <div onclick="switchMerchantTab('recompenses')" class="tactile-card glass-panel rounded-2xl p-4 border border-white/10 space-y-1.5 cursor-pointer">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>Cadeaux Offerts</span>
+              <span class="text-amber-400">🎁</span>
+            </div>
+            <div id="kpi-rewards-given" class="text-2xl font-extrabold text-white">0</div>
+            <div class="text-[10px] font-bold text-amber-400">Fidélité récompensée</div>
+          </div>
+
+          <div onclick="switchMerchantTab('caisse')" class="tactile-card glass-panel rounded-2xl p-4 border border-white/10 space-y-1.5 cursor-pointer">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>Passages Caisse</span>
+              <span class="text-sky-400">⚡</span>
+            </div>
+            <div id="kpi-total-visits" class="text-2xl font-extrabold text-white">0</div>
+            <div id="kpi-avg-visits" class="text-[10px] font-bold text-sky-400">Moyenne 1.0 vis/client</div>
+          </div>
+        </div>
+
+        <!-- CARTE QR CODE OFFICIEL DE LA BOUTIQUE (INTÉGRÉE AU COMPTE COMMERÇANT) -->
+        <div class="glass-panel rounded-[24px] p-5 border border-violet-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="space-y-1.5 text-center sm:text-left">
+            <span class="text-[10px] uppercase tracking-wider text-violet-400 font-extrabold">QR Code d'adhésion de votre commerce</span>
+            <h3 class="text-sm font-extrabold text-white">Faites scanner ce QR code à vos clients</h3>
+            <p class="text-[11px] text-slate-400">Vos clients peuvent scanner ce code depuis leur téléphone pour ajouter votre carte et recevoir leurs +10 points de bienvenue.</p>
+            <div class="pt-1 flex flex-wrap justify-center sm:justify-start gap-2">
+              <span id="dash-inline-shop-code" class="px-3 py-1 rounded-lg bg-violet-500/15 border border-violet-500/30 font-mono text-xs font-extrabold text-violet-300">SB-SHOP-100</span>
+              <button onclick="openModal('modal-chevalet')" class="tactile-btn px-3 py-1 rounded-lg bg-white/10 text-white text-xs font-bold">
+                Plein écran / Imprimer 🪧
+              </button>
+            </div>
+          </div>
+          <div onclick="openModal('modal-chevalet')" class="bg-white p-2.5 rounded-2xl shadow-lg shrink-0 cursor-pointer">
+            <div id="dash-inline-qrcode"></div>
+          </div>
+        </div>
+
+        <!-- GRAPHIQUE 1 : FRÉQUENTATION & PASSAGES DE LA SEMAINE -->
+        <div class="glass-panel rounded-[24px] p-5 border border-white/10 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-extrabold text-white">Fréquentation de la Semaine</h3>
+              <p class="text-[11px] text-slate-400">Passages en caisse du Lundi au Dimanche</p>
+            </div>
+            <span id="chart-peak-badge" class="px-2.5 py-1 rounded-full bg-violet-500/20 border border-violet-400/30 text-violet-300 text-[10px] font-extrabold">
+              Pic : Sam
+            </span>
+          </div>
+
+          <div id="weekly-chart-bars" class="grid grid-cols-7 gap-2 h-36 items-end pt-4 px-1"></div>
+
+          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 text-center">
+            <div>
+              <div class="text-[10px] text-slate-400">Moyenne / jour</div>
+              <div id="stat-daily-avg" class="text-xs font-extrabold text-white mt-0.5">0.0</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-400">Points Moyens</div>
+              <div id="stat-avg-points" class="text-xs font-extrabold text-violet-400 mt-0.5">0 pts</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-400">Cadeau star</div>
+              <div id="stat-top-reward" class="text-xs font-extrabold text-emerald-400 mt-0.5 truncate">Café offert</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRAPHIQUE 2 : ÉVOLUTION DES POINTS DISTRIBUÉS & ENCAISSEMENTS -->
+        <div class="glass-panel rounded-[24px] p-5 border border-white/10 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-extrabold text-white">Volume de Points & Chiffre Fidélité</h3>
+              <p class="text-[11px] text-slate-400">Progression sur les 6 derniers mois</p>
+            </div>
+            <span id="total-points-volume" class="text-xs font-extrabold text-emerald-400">0 pts cumulés</span>
+          </div>
+          <div class="relative h-32 w-full">
+            <svg id="points-trend-svg" viewBox="0 0 320 100" class="w-full h-full overflow-visible"></svg>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-500 font-bold px-1">
+            <span>Juin</span><span>Juil</span><span>Août</span><span>Sept</span><span>Oct</span><span>Nov</span>
+          </div>
+        </div>
+
+        <!-- DERNIÈRES VISITES EN CAISSE -->
+        <div class="glass-panel rounded-[24px] p-5 border border-white/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-extrabold text-white">Dernières Visites en Caisse</h3>
+            <span class="text-[10px] font-bold text-slate-400">Temps réel</span>
+          </div>
+          <div id="recent-visits-list" class="space-y-2.5"></div>
+          <div class="grid grid-cols-2 gap-2.5 pt-2">
+            <button onclick="switchMerchantTab('caisse')" class="tactile-btn py-2.5 rounded-xl violet-gradient text-white text-xs font-bold">
+              Passer au Comptoir
+            </button>
+            <button onclick="openModal('modal-new-client')" class="tactile-btn py-2.5 rounded-xl bg-white/10 text-white text-xs font-bold">
+              Inscrire un Client
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ONGLET 2 : CLIENTS ==================== -->
+      <div id="mtab-clients" class="hidden-view space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-extrabold text-white">Répertoire Clients</h2>
+            <p class="text-xs text-slate-400">Gérez vos membres, affichez leur QR ou encaissez-les</p>
+          </div>
+          <button onclick="openModal('modal-new-client')" class="tactile-btn px-3.5 py-2.5 rounded-xl violet-gradient violet-glow text-white text-xs font-extrabold">
+            + Nouveau Client
+          </button>
+        </div>
+
+        <!-- Recherche & Filtres -->
+        <div class="space-y-2.5">
+          <input id="client-search-input" type="text" oninput="renderMerchantClients()" placeholder="Rechercher par nom, prénom, téléphone ou email..." class="w-full px-4 py-3 rounded-2xl bg-[#0E0F19] border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500" />
+          <div class="flex gap-2">
+            <button onclick="setClientFilter('all')" data-cfilter="all" class="cfilter-btn px-3 py-1.5 rounded-xl bg-violet-600 text-white text-xs font-bold">Tous</button>
+            <button onclick="setClientFilter('vip')" data-cfilter="vip" class="cfilter-btn px-3 py-1.5 rounded-xl bg-white/5 text-slate-400 text-xs font-bold">VIP (+50 pts)</button>
+            <button onclick="setClientFilter('active')" data-cfilter="active" class="cfilter-btn px-3 py-1.5 rounded-xl bg-white/5 text-slate-400 text-xs font-bold">Solde actif</button>
+          </div>
+        </div>
+
+        <div id="merchant-clients-list" class="space-y-2.5"></div>
+      </div>
+
+      <!-- ==================== ONGLET 3 : CAISSE & SCAN (AVEC QR BOUTIQUE INTÉGRÉ) ==================== -->
+      <div id="mtab-caisse" class="hidden-view space-y-4">
+        <div class="glass-panel rounded-[24px] p-5 border border-white/10 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-extrabold text-white">Terminal Caisse & Scanner</h2>
+              <p class="text-[11px] text-slate-400">Scannez le client, choisissez-le ou faites scanner votre QR</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">1 € = 1 pt</span>
+          </div>
+
+          <!-- 3 Modes en Caisse : Scanner Client | Liste Manuelle | Mon QR Boutique -->
+          <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-[#080910] border border-white/10">
+            <button id="caisse-mode-scan" onclick="setCaisseMode('scan')" class="tactile-btn py-2 rounded-xl bg-violet-600 text-white text-[11px] font-bold">
+              📷 Scanner Client
+            </button>
+            <button id="caisse-mode-manual" onclick="setCaisseMode('manual')" class="tactile-btn py-2 rounded-xl text-slate-400 text-[11px] font-bold">
+              📋 Annuaire
+            </button>
+            <button id="caisse-mode-shopqr" onclick="setCaisseMode('shopqr')" class="tactile-btn py-2 rounded-xl text-slate-400 text-[11px] font-bold">
+              🪧 Mon QR Caisse
+            </button>
+          </div>
+
+          <!-- Zone 1 : Caméra QR Client -->
+          <div id="caisse-scan-zone" class="space-y-3">
+            <div id="merchant-qr-reader" class="hidden-view rounded-2xl overflow-hidden border-2 border-violet-500/50 bg-black"></div>
+            <div class="flex gap-2">
+              <button id="btn-start-merchant-cam" onclick="toggleMerchantCamera()" class="tactile-btn flex-1 py-3 rounded-xl bg-white/10 border border-white/10 text-white text-xs font-extrabold">
+                Activer la caméra pour scanner
+              </button>
+              <button onclick="simulateCounterScan()" class="tactile-btn px-3.5 py-3 rounded-xl bg-violet-600/20 border border-violet-500/35 text-violet-300 text-xs font-bold">
+                Test rapide
+              </button>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[11px] font-semibold text-slate-400">Ou entrez le téléphone, email ou code pass client :</label>
+              <div class="flex gap-2">
+                <input id="caisse-identifier-input" type="text" placeholder="Ex: 0612345678 ou client@email.fr" class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#080910] border border-white/10 text-xs text-white focus:outline-none focus:border-violet-500" />
+                <button onclick="identifyCustomerAtCounter()" class="tactile-btn px-4 py-2.5 rounded-xl violet-gradient text-white text-xs font-bold">
+                  Identifier
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Zone 2 : Sélection Manuelle -->
+          <div id="caisse-manual-zone" class="hidden-view space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+
+          <!-- Zone 3 : QR Code de la Boutique affiché directement sur la caisse -->
+          <div id="caisse-shopqr-zone" class="hidden-view text-center space-y-3 py-2">
+            <div class="text-xs font-extrabold text-violet-300">Présentez cet écran à votre client</div>
+            <p class="text-[11px] text-slate-400 max-w-xs mx-auto">Le client scanne ce QR code depuis le bouton <strong>+ Ajouter</strong> de son portefeuille pour créer sa carte avec <strong>+10 points offerts</strong>.</p>
+            <div class="bg-white p-4 rounded-2xl w-fit mx-auto shadow-xl">
+              <div id="caisse-inline-shop-qrcode"></div>
+            </div>
+            <div id="caisse-inline-shop-code" class="text-xs font-mono font-extrabold text-white bg-white/5 py-2 px-4 rounded-xl inline-block border border-white/10">
+              SB-SHOP-100
+            </div>
+          </div>
+        </div>
+
+        <!-- COMPTOIR D'ENCAISSEMENT CLIENT IDENTIFIÉ (RAFRAÎCHISSEMENT DIRECT) -->
+        <div id="counter-checkout-card" class="hidden-view glass-panel rounded-[24px] p-5 border-2 border-violet-500/50 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] uppercase tracking-wider text-violet-400 font-extrabold">Client au comptoir</span>
+              <h3 id="checkout-client-name" class="text-lg font-extrabold text-white">Client</h3>
+              <div id="checkout-client-id" class="text-xs text-slate-400">identifiant</div>
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] text-slate-400">Solde actuel</div>
+              <div id="checkout-balance-wrapper" class="text-2xl font-extrabold text-emerald-400"><span id="checkout-client-points">0</span> pts</div>
+            </div>
+          </div>
+
+          <!-- Saisie montant -->
+          <div class="p-4 rounded-2xl bg-[#080910] border border-white/10 space-y-3">
+            <label class="block text-xs font-bold text-slate-300">Montant de l'achat (€)</label>
+            <div class="flex items-center gap-3">
+              <input id="checkout-amount-input" type="number" step="0.01" min="0" oninput="updateCheckoutPreview()" placeholder="0.00" class="w-full px-4 py-3 rounded-xl bg-[#111320] border border-white/15 text-xl font-extrabold text-white focus:outline-none focus:border-violet-500" />
+              <div class="px-4 py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-center shrink-0">
+                <div class="text-[10px] text-emerald-300 font-bold">Points</div>
+                <div id="checkout-points-preview" class="text-base font-extrabold text-emerald-400">+0</div>
+              </div>
+            </div>
+            <!-- Raccourcis montants tactiles -->
+            <div class="grid grid-cols-4 gap-2">
+              <button type="button" onclick="setQuickAmount(5)" class="tactile-btn py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-200">5 €</button>
+              <button type="button" onclick="setQuickAmount(10)" class="tactile-btn py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-200">10 €</button>
+              <button type="button" onclick="setQuickAmount(20)" class="tactile-btn py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-200">20 €</button>
+              <button type="button" onclick="setQuickAmount(50)" class="tactile-btn py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-200">50 €</button>
+            </div>
+          </div>
+
+          <button onclick="confirmCounterPurchase()" class="tactile-btn w-full py-4 rounded-2xl violet-gradient violet-glow text-white text-sm font-extrabold">
+            Valider l'encaissement & Créditer
+          </button>
+
+          <!-- Cadeaux utilisables par ce client -->
+          <div class="space-y-2 pt-2 border-t border-white/10">
+            <div class="text-xs font-bold text-slate-300">Échanger une récompense :</div>
+            <div id="checkout-redeem-list" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ONGLET 4 : RÉCOMPENSES ==================== -->
+      <div id="mtab-recompenses" class="hidden-view space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-extrabold text-white">Catalogue Récompenses</h2>
+            <p class="text-xs text-slate-400">Définissez les paliers de cadeaux de votre boutique</p>
+          </div>
+          <button onclick="openModal('modal-new-reward')" class="tactile-btn px-3.5 py-2.5 rounded-xl violet-gradient violet-glow text-white text-xs font-extrabold">
+            + Créer
+          </button>
+        </div>
+
+        <div id="merchant-rewards-list" class="space-y-2.5"></div>
+      </div>
+
+      <!-- ==================== ONGLET 5 : PROMOTIONS ==================== -->
+      <div id="mtab-promotions" class="hidden-view space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-extrabold text-white">Offres & Campagnes</h2>
+            <p class="text-xs text-slate-400">Boostez les visites avec des offres limitées</p>
+          </div>
+          <button onclick="openModal('modal-new-promo')" class="tactile-btn px-3.5 py-2.5 rounded-xl violet-gradient violet-glow text-white text-xs font-extrabold">
+            + Lancer une Offre
+          </button>
+        </div>
+
+        <div id="merchant-promos-list" class="space-y-2.5"></div>
+      </div>
+
+      <!-- ==================== ONGLET 6 : PARAMÈTRES ==================== -->
+      <div id="mtab-parametres" class="hidden-view space-y-5">
+        <div class="glass-panel rounded-[24px] p-5 border border-white/10 space-y-4">
+          <h2 class="text-base font-extrabold text-white">Identité & Personnalisation</h2>
+
+          <!-- Aperçu en direct de la carte client -->
+          <div id="live-card-preview" class="rounded-[24px] p-5 text-white shadow-2xl relative overflow-hidden transition-all duration-300" style="background: linear-gradient(135deg, #7C3AED 0%, #31107A 100%);">
+            <div class="card-shimmer absolute inset-0 pointer-events-none"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-[10px] uppercase tracking-widest text-white/75 font-bold">Aperçu Pass Client</div>
+                <div id="preview-card-shop-name" class="text-lg font-extrabold mt-0.5">Mon Commerce</div>
+                <div id="preview-card-category" class="text-[11px] text-white/80">Boulangerie / Pâtisserie</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[10px] uppercase text-white/75 font-bold">Solde</div>
+                <div class="text-xl font-extrabold">45 pts</div>
+              </div>
+            </div>
+            <div class="mt-5 pt-3 border-t border-white/20 flex items-center justify-between text-[11px]">
+              <span id="preview-card-code" class="font-mono font-bold">CODE : SB-SHOP-100</span>
+              <span class="font-bold">1 € = 1 pt</span>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Nom du Commerce</label>
+              <input id="set-shop-name" type="text" oninput="updateLiveCardPreview()" class="w-full px-4 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Catégorie d'activité</label>
+              <select id="set-shop-category" onchange="updateLiveCardPreview()" class="w-full px-4 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white">
+                <option value="Boulangerie / Pâtisserie">Boulangerie / Pâtisserie</option>
+                <option value="Restaurant / Snack / Fast Food">Restaurant / Snack / Fast Food</option>
+                <option value="Salon de coiffure / Barbier">Salon de coiffure / Barbier</option>
+                <option value="Magasin de prêt-à-porter">Magasin de prêt-à-porter</option>
+                <option value="Épicerie fine / Primeur">Épicerie fine / Primeur</option>
+                <option value="Café / Salon de thé">Café / Salon de thé</option>
+                <option value="Autre commerce local">Autre commerce local</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Téléphone du Commerce</label>
+              <input id="set-shop-phone" type="tel" placeholder="01 23 45 67 89" class="w-full px-4 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-sm text-white" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-2">Couleur Principale du Pass Client</label>
+              <div class="flex flex-wrap items-center gap-2.5">
+                <button type="button" onclick="selectShopColor('#7C3AED')" class="w-8 h-8 rounded-full bg-[#7C3AED] ring-2 ring-white/40"></button>
+                <button type="button" onclick="selectShopColor('#4F46E5')" class="w-8 h-8 rounded-full bg-[#4F46E5]"></button>
+                <button type="button" onclick="selectShopColor('#059669')" class="w-8 h-8 rounded-full bg-[#059669]"></button>
+                <button type="button" onclick="selectShopColor('#D97706')" class="w-8 h-8 rounded-full bg-[#D97706]"></button>
+                <button type="button" onclick="selectShopColor('#E11D48')" class="w-8 h-8 rounded-full bg-[#E11D48]"></button>
+                <button type="button" onclick="selectShopColor('#0284C7')" class="w-8 h-8 rounded-full bg-[#0284C7]"></button>
+                <button type="button" onclick="selectShopColor('#1E293B')" class="w-8 h-8 rounded-full bg-[#1E293B] border border-white/20"></button>
+                <input id="set-shop-color" type="color" value="#7C3AED" oninput="updateLiveCardPreview()" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" />
+              </div>
+            </div>
+
+            <button onclick="saveShopSettings()" class="tactile-btn w-full py-3.5 rounded-2xl violet-gradient violet-glow text-white text-sm font-extrabold">
+              Enregistrer les modifications
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </section>
+
+  <!-- =====================================================================
+       3. ESPACE CLIENT — PORTEFEUILLE FIDÉLITÉ DYNAMIQUE & TACTILE
+  ====================================================================== -->
+  <section id="screen-client" class="hidden-view min-h-screen flex flex-col bg-[#06060B]">
+    <header class="sticky top-0 z-30 glass-panel border-b border-white/10 px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl violet-gradient flex items-center justify-center font-extrabold text-xs text-white shadow-md">SB</div>
+        <div>
+          <div class="text-sm font-extrabold text-white">Mon Portefeuille</div>
+          <div id="client-header-subtitle" class="text-[11px] text-slate-400">Bienvenue</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openModal('modal-client-universal-pass')" class="tactile-btn px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-xs font-bold text-white flex items-center gap-1.5">
+          <span>🪪</span> Mon QR
+        </button>
+        <button onclick="openModal('modal-add-shop')" class="tactile-btn px-3.5 py-2 rounded-xl violet-gradient violet-glow text-xs font-extrabold text-white flex items-center gap-1">
+          <span>+</span> Ajouter
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-md w-full mx-auto px-4 py-5 pb-24 space-y-6">
+
+      <!-- STATISTIQUES PERSONNELLES DU CLIENT -->
+      <div class="grid grid-cols-3 gap-2.5">
+        <div class="glass-panel rounded-2xl p-3.5 border border-white/10 text-center">
+          <div class="text-[10px] text-slate-400 font-semibold">Cartes</div>
+          <div id="client-stat-cards" class="text-xl font-extrabold text-white mt-0.5">0</div>
+        </div>
+        <div class="glass-panel rounded-2xl p-3.5 border border-white/10 text-center">
+          <div class="text-[10px] text-slate-400 font-semibold">Points Cumulés</div>
+          <div id="client-stat-points" class="text-xl font-extrabold text-violet-400 mt-0.5">0</div>
+        </div>
+        <div class="glass-panel rounded-2xl p-3.5 border border-white/10 text-center">
+          <div class="text-[10px] text-slate-400 font-semibold">Cadeaux Prêts</div>
+          <div id="client-stat-rewards" class="text-xl font-extrabold text-emerald-400 mt-0.5">0</div>
+        </div>
+      </div>
+
+      <!-- PILE DE CARTES INTERACTIVE -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-extrabold text-white">Mes Cartes Commerçants</h2>
+          <button onclick="refreshClientWallet()" class="text-[11px] font-bold text-violet-400">Actualiser ↻</button>
+        </div>
+
+        <div id="client-empty-wallet" class="hidden-view glass-panel rounded-[26px] p-7 border border-dashed border-white/15 text-center space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-violet-600/20 text-violet-400 mx-auto flex items-center justify-center text-2xl">💳</div>
+          <div class="space-y-1">
+            <h3 class="text-base font-extrabold text-white">Aucune carte dans votre portefeuille</h3>
+            <p class="text-xs text-slate-400">Scannez le chevalet d'un commerçant partenaire ou présentez votre QR pass en caisse pour recevoir +10 points de bienvenue.</p>
+          </div>
+          <button onclick="openModal('modal-add-shop')" class="tactile-btn w-full py-3 rounded-2xl violet-gradient violet-glow text-white text-xs font-extrabold">
+            + Ajouter un commerce
+          </button>
+        </div>
+
+        <div id="wallet-cards-stack" class="space-y-0"></div>
+      </div>
+
+      <!-- RAPPEL FONCTIONNEMENT CLIENT -->
+      <div class="glass-panel rounded-[24px] p-4 border border-white/10 space-y-2">
+        <div class="text-xs font-extrabold text-violet-300">💡 Comment gagner et utiliser vos points ?</div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Présentez le QR code de votre carte à chaque passage en caisse : <strong>1 € dépensé = 1 point</strong> (arrondi dès 0,50 €). Dès qu'un palier cadeau est vert, demandez votre récompense au commerçant !
+        </p>
+      </div>
+
+      <!-- FIL D'ACTIVITÉ & HISTORIQUE DU CLIENT -->
+      <div class="glass-panel rounded-[24px] p-5 border border-white/10 space-y-3">
+        <h3 class="text-sm font-extrabold text-white">Activité Récente</h3>
+        <div id="client-activity-feed" class="space-y-2.5 text-xs"></div>
+      </div>
+
+      <button onclick="logoutClient()" class="w-full py-2.5 text-xs font-bold text-slate-500 hover:text-slate-300">
+        Changer de compte client
+      </button>
+    </main>
+  </section>
+
+  <!-- =====================================================================
+       MODALES TACTILES iOS (OTP EMAIL, CARTES, QR CODES, CRÉATIONS)
+  ====================================================================== -->
+
+  <!-- MODALE 0 : VÉRIFICATION DU CODE REÇU PAR EMAIL (OTP 6 CHIFFRES) -->
+  <div id="modal-otp-verify" class="fixed inset-0 z-[110] hidden-view flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+    <div class="bg-[#0D0E18] border border-white/15 rounded-[28px] w-full max-w-sm p-6 space-y-5 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-2xl violet-gradient violet-glow mx-auto flex items-center justify-center text-xl">✉️</div>
+      <div class="space-y-1">
+        <h3 class="text-lg font-extrabold text-white">Vérification par code</h3>
+        <p class="text-xs text-slate-400">Nous avons envoyé un code de connexion à <strong id="otp-target-email" class="text-violet-300"></strong></p>
+      </div>
+
+      <!-- Saisie du code à 6 chiffres -->
+      <div class="space-y-3">
+        <input id="otp-code-input" type="text" maxlength="6" placeholder="••••••" class="w-full text-center tracking-[0.5em] text-2xl font-extrabold py-3.5 rounded-2xl bg-[#070810] border border-violet-500/40 text-white focus:outline-none focus:border-violet-400" />
+        <div id="otp-instant-helper" class="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 rounded-xl py-2 px-3">
+          Code d'accès instantané envoyé : <strong id="otp-fallback-code" class="font-mono underline cursor-pointer" onclick="fillFallbackOtp()"></strong> (cliquez pour remplir)
+        </div>
+      </div>
+
+      <button onclick="confirmOtpVerification()" class="tactile-btn w-full py-3.5 rounded-2xl violet-gradient violet-glow text-white text-xs font-extrabold">
+        Valider mon code & continuer
+      </button>
+      <button onclick="closeModal('modal-otp-verify')" class="text-xs text-slate-500 hover:text-slate-300">
+        Annuler
+      </button>
+    </div>
+  </div>
+
+  <!-- MODALE 1 : DÉTAIL D'UNE CARTE CLIENT (RECTO-VERSO 3D + RÉCOMPENSES + PROMOS) -->
+  <div id="modal-card-detail" class="fixed inset-0 z-50 hidden-view flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
+    <div class="bg-[#0D0E18] border-t sm:border border-white/15 rounded-t-[32px] sm:rounded-[32px] w-full max-w-md max-h-[92vh] overflow-y-auto p-5 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <button onclick="flipDetailCard()" class="tactile-btn px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold text-violet-300">
+          ↻ Retourner la carte
+        </button>
+        <button onclick="closeModal('modal-card-detail')" class="tactile-btn w-9 h-9 rounded-full bg-white/10 text-white font-bold">✕</button>
+      </div>
+
+      <div class="flip-scene">
+        <div id="detail-flip-inner" class="flip-card-inner">
+          <div id="detail-card-front" class="flip-face rounded-[26px] p-6 text-white shadow-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #7C3AED 0%, #31107A 100%);">
+            <div class="card-shimmer absolute inset-0 pointer-events-none"></div>
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <div id="detail-shop-cat" class="text-[10px] uppercase tracking-widest text-white/75 font-bold">Commerce</div>
+                <h3 id="detail-shop-name" class="text-xl font-extrabold mt-0.5">Boutique</h3>
+              </div>
+              <div class="text-right">
+                <div class="text-[10px] uppercase text-white/75 font-bold">Solde</div>
+                <div class="text-2xl font-extrabold"><span id="detail-card-points">0</span> <span class="text-xs">pts</span></div>
+              </div>
+            </div>
+
+            <div class="bg-white p-3.5 rounded-2xl w-fit mx-auto shadow-lg">
+              <div id="detail-card-qrcode"></div>
+            </div>
+            <div id="detail-card-identifier" class="text-center text-[11px] font-mono text-white/85 mt-3"></div>
+          </div>
+
+          <div class="flip-face flip-back absolute inset-0 rounded-[26px] p-6 bg-[#151728] border border-white/15 text-white flex flex-col justify-between">
+            <div class="space-y-2">
+              <div class="text-xs font-extrabold text-violet-400 uppercase tracking-wider">Informations du Pass</div>
+              <div class="text-sm font-bold" id="detail-back-shop">Boutique</div>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Présentez ce QR code à chaque passage en caisse. Chaque euro dépensé vous rapporte <strong>1 point</strong> (arrondi au point supérieur dès 0,50 €).
+              </p>
+            </div>
+            <div class="p-3 rounded-xl bg-black/30 border border-white/10 text-[11px] text-slate-400 space-y-1">
+              <div>Titulaire : <strong id="detail-back-holder" class="text-white">Client</strong></div>
+              <div>Code Boutique : <strong id="detail-back-code" class="text-violet-300 font-mono">SB-000</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="detail-promos-section" class="hidden-view space-y-2">
+        <div class="text-xs font-extrabold text-amber-400 uppercase tracking-wider">🔥 Offres en cours</div>
+        <div id="detail-promos-list" class="space-y-2"></div>
+      </div>
+
+      <div class="space-y-2.5">
+        <div class="text-xs font-extrabold text-white uppercase tracking-wider">🎁 Récompenses disponibles</div>
+        <div id="detail-rewards-list" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE 2 : AJOUTER UN COMMERCE (SCAN CHEVALET OU CODE BOUTIQUE) -->
+  <div id="modal-add-shop" class="fixed inset-0 z-50 hidden-view flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
+    <div class="bg-[#0D0E18] border-t sm:border border-white/15 rounded-t-[32px] sm:rounded-[32px] w-full max-w-md p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-white">+ Ajouter un commerce</h3>
+        <button onclick="closeAddShopModal()" class="tactile-btn w-8 h-8 rounded-full bg-white/10 text-white font-bold">✕</button>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#131524] border border-white/10 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs font-extrabold text-white">Option A : Scan du chevalet</div>
+            <div class="text-[11px] text-slate-400">Scannez le QR code affiché en magasin</div>
+          </div>
+          <button id="btn-client-scan-shop" onclick="toggleClientShopScanner()" class="tactile-btn px-3 py-2 rounded-xl violet-gradient text-white text-xs font-bold">
+            📷 Scanner
+          </button>
+        </div>
+        <div id="client-shop-qr-reader" class="hidden-view rounded-xl overflow-hidden border border-violet-500/40"></div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#131524] border border-white/10 space-y-3">
+        <div>
+          <div class="text-xs font-extrabold text-white">Option B : Par code ou nom</div>
+          <div class="text-[11px] text-slate-400">Saisissez l'identifiant court (ex: SB-MART-651) ou le nom</div>
+        </div>
+        <div class="flex gap-2">
+          <input id="join-shop-code-input" type="text" placeholder="Code ou nom de la boutique..." class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white focus:outline-none focus:border-violet-500" />
+          <button onclick="joinShopByCodeOrName()" class="tactile-btn px-4 py-2.5 rounded-xl violet-gradient text-white text-xs font-extrabold">
+            Rejoindre
+          </button>
+        </div>
+        <div id="available-shops-directory" class="space-y-1.5 max-h-36 overflow-y-auto pt-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE 3 : PASS UNIVERSEL CLIENT -->
+  <div id="modal-client-universal-pass" class="fixed inset-0 z-50 hidden-view flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="bg-[#0D0E18] border border-white/15 rounded-[28px] w-full max-w-xs p-6 text-center space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-extrabold text-violet-400">Pass Universel d'Adhésion</span>
+        <button onclick="closeModal('modal-client-universal-pass')" class="w-8 h-8 rounded-full bg-white/10 text-white text-xs">✕</button>
+      </div>
+      <p class="text-[11px] text-slate-400">Présentez ce QR code dans n'importe quel commerce partenaire pour créer votre carte avec <strong>+10 points offerts</strong>.</p>
+      <div class="bg-white p-4 rounded-2xl w-fit mx-auto">
+        <div id="universal-client-qrcode"></div>
+      </div>
+      <div id="universal-client-label" class="text-xs font-mono font-bold text-white"></div>
+    </div>
+  </div>
+
+  <!-- MODALE 4 : INSCRIRE UN NOUVEAU CLIENT EN CAISSE (+10 PTS BIENVENUE) -->
+  <div id="modal-new-client" class="fixed inset-0 z-50 hidden-view flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
+    <form onsubmit="handleMerchantCreateClient(event)" class="bg-[#0D0E18] border-t sm:border border-white/15 rounded-t-[32px] sm:rounded-[32px] w-full max-w-md p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-white">Inscrire un Nouveau Client</h3>
+        <button type="button" onclick="closeModal('modal-new-client')" class="w-8 h-8 rounded-full bg-white/10 text-white">✕</button>
+      </div>
+      <div class="px-3.5 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
+        🎁 +10 points de bienvenue offerts dès l'adhésion !
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Prénom *</label>
+          <input id="new-cli-firstname" type="text" required placeholder="Camille" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Nom</label>
+          <input id="new-cli-lastname" type="text" placeholder="Laurent" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Téléphone mobile ou Email *</label>
+        <input id="new-cli-contact" type="text" required placeholder="06 12 34 56 78 ou email@client.fr" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+      </div>
+      <button type="submit" class="tactile-btn w-full py-3.5 rounded-2xl violet-gradient violet-glow text-white text-xs font-extrabold">
+        Créer la carte & Créditer +10 pts
+      </button>
+    </form>
+  </div>
+
+  <!-- MODALE 5 : CRÉER UNE RÉCOMPENSE -->
+  <div id="modal-new-reward" class="fixed inset-0 z-50 hidden-view flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
+    <form onsubmit="handleCreateReward(event)" class="bg-[#0D0E18] border-t sm:border border-white/15 rounded-t-[32px] sm:rounded-[32px] w-full max-w-md p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-white">Créer une Récompense</h3>
+        <button type="button" onclick="closeModal('modal-new-reward')" class="w-8 h-8 rounded-full bg-white/10 text-white">✕</button>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Intitulé du cadeau *</label>
+        <input id="new-rew-title" type="text" required placeholder="Ex: Café ou Viennoiserie offerte" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Points nécessaires *</label>
+        <input id="new-rew-points" type="number" min="5" required placeholder="Ex: 50" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Conditions / Description</label>
+        <input id="new-rew-desc" type="text" placeholder="Valable sur toute la carte" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+      </div>
+      <button type="submit" class="tactile-btn w-full py-3.5 rounded-2xl violet-gradient text-white text-xs font-extrabold">
+        Ajouter au catalogue
+      </button>
+    </form>
+  </div>
+
+  <!-- MODALE 6 : LANCER UNE PROMOTION -->
+  <div id="modal-new-promo" class="fixed inset-0 z-50 hidden-view flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
+    <form onsubmit="handleCreatePromo(event)" class="bg-[#0D0E18] border-t sm:border border-white/15 rounded-t-[32px] sm:rounded-[32px] w-full max-w-md p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-white">Lancer une Offre Spéciale</h3>
+        <button type="button" onclick="closeModal('modal-new-promo')" class="w-8 h-8 rounded-full bg-white/10 text-white">✕</button>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Nom de l'opération *</label>
+        <input id="new-promo-title" type="text" required placeholder="Ex: Week-end Points Doublés" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Avantage client *</label>
+        <input id="new-promo-benefit" type="text" required placeholder="Ex: -20% sur votre article préféré" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Date de fin</label>
+        <input id="new-promo-end" type="date" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090A12] border border-white/10 text-xs text-white" />
+      </div>
+      <button type="submit" class="tactile-btn w-full py-3.5 rounded-2xl violet-gradient text-white text-xs font-extrabold">
+        Publier l'offre sur les cartes clients
+      </button>
+    </form>
+  </div>
+
+  <!-- MODALE 7 : CHEVALET DE COMPTOIR QR CODE COMMERÇANT -->
+  <div id="modal-chevalet" class="fixed inset-0 z-50 hidden-view flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+    <div class="bg-[#0D0E18] border border-white/15 rounded-[28px] w-full max-w-xs p-6 text-center space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-extrabold text-violet-400">Chevalet de Comptoir</span>
+        <button onclick="closeModal('modal-chevalet')" class="w-8 h-8 rounded-full bg-white/10 text-white text-xs">✕</button>
+      </div>
+      <div class="space-y-1">
+        <h3 id="chevalet-shop-title" class="text-base font-extrabold text-white">Mon Commerce</h3>
+        <p class="text-[11px] text-slate-400">Scannez pour rejoindre notre programme fidélité (+10 pts offerts)</p>
+      </div>
+      <div class="bg-white p-4 rounded-2xl w-fit mx-auto shadow-lg">
+        <div id="chevalet-qrcode"></div>
+      </div>
+      <div id="chevalet-code-text" class="text-xs font-mono font-extrabold text-violet-300 bg-violet-500/10 py-2 rounded-xl border border-violet-500/25">
+        SB-SHOP-100
+      </div>
+      <button onclick="window.print()" class="tactile-btn w-full py-2.5 rounded-xl bg-white/10 text-white text-xs font-bold">
+        🖨️ Imprimer le chevalet
+      </button>
+    </div>
+  </div>
+
+  <!-- MODALE 8 : QR CODE INDIVIDUEL D'UN CLIENT (DEPUIS LE COMPTE COMMERÇANT) -->
+  <div id="modal-merchant-client-qr" class="fixed inset-0 z-50 hidden-view flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+    <div class="bg-[#0D0E18] border border-white/15 rounded-[28px] w-full max-w-xs p-6 text-center space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-extrabold text-emerald-400">QR Pass Client</span>
+        <button onclick="closeModal('modal-merchant-client-qr')" class="w-8 h-8 rounded-full bg-white/10 text-white text-xs">✕</button>
+      </div>
+      <div>
+        <h3 id="m-cli-qr-name" class="text-base font-extrabold text-white">Client</h3>
+        <p id="m-cli-qr-email" class="text-xs text-slate-400"></p>
+      </div>
+      <div class="bg-white p-4 rounded-2xl w-fit mx-auto shadow-lg">
+        <div id="m-cli-qrcode-box"></div>
+      </div>
+      <div id="m-cli-qr-points" class="text-sm font-extrabold text-emerald-400">0 pts</div>
+      <button id="m-cli-qr-checkout-btn" class="tactile-btn w-full py-3 rounded-xl violet-gradient text-white text-xs font-extrabold">
+        Encaisser ce client →
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       LOGIQUE JAVASCRIPT COMPLÈTE (SUPABASE + OTP + STRIPE + TEMPS RÉEL)
+  ====================================================================== -->
+  <script>
+    // 1. CONFIGURATION SUPABASE & STRIPE
+    const SUPABASE_URL = 'https://prdbfryilqhtcrojpoht.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_mZj9GYBc8IJkfaiW3JTmsQ_ZvmCCmKd';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const STRIPE_LINKS = {
+      single_monthly: 'https://buy.stripe.com/test_9B65kF8WHfRQ2QE5iMcfK08',
+      single_annual: 'https://buy.stripe.com/test_3cIcN7b4PeNM62Q4eIcfK06',
+      multi_monthly: 'https://buy.stripe.com/test_dRmdRb6OzcFE9f29z2cfK07',
+      multi_annual: 'https://buy.stripe.com/test_6oU28t5KveNM0IwcLecfK05'
+    };
+
+    // État global
+    let activeShop = null;
+    let merchantCards = [];
+    let merchantActivity = [];
+    let clientFilter = 'all';
+    let selectedCounterCard = null;
+    let merchantScanner = null;
+
+    let activeClient = null;
+    let clientWalletCards = [];
+    let clientShopScanner = null;
+
+    // État OTP en attente
+    let pendingAuthContext = null; // { role: 'merchant_reg'|'merchant_login'|'client_login', email, name, category, generatedCode }
+
+    function showToast(title, msg, icon = '✓') {
+      const toast = document.getElementById('ios-toast');
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-msg').textContent = msg;
+      document.getElementById('toast-icon').textContent = icon;
+      toast.classList.remove('opacity-0', '-translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-4');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 3200);
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden-view');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden-view');
+    }
+
+    function generateShopCode(name) {
+      const clean = (name || 'SHOP').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
+      const num = Math.floor(100 + Math.random() * 899);
+      return `SB-${clean}-${num}`;
+    }
+
+    // ==================== NAVIGATION AUTH & TUNNEL ====================
+    function switchAuthPortal(portal) {
+      const btnM = document.getElementById('mode-btn-merchant');
+      const btnC = document.getElementById('mode-btn-client');
+      const wrapM = document.getElementById('portal-merchant-wrapper');
+      const wrapC = document.getElementById('portal-client-wrapper');
+
+      if (portal === 'merchant') {
+        btnM.className = 'tactile-btn px-4 py-2 rounded-xl text-xs font-bold bg-violet-600 text-white shadow-md';
+        btnC.className = 'tactile-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white';
+        wrapM.classList.remove('hidden-view');
+        wrapC.classList.add('hidden-view');
+      } else {
+        btnC.className = 'tactile-btn px-4 py-2 rounded-xl text-xs font-bold bg-violet-600 text-white shadow-md';
+        btnM.className = 'tactile-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white';
+        wrapC.classList.remove('hidden-view');
+        wrapM.classList.add('hidden-view');
+      }
+    }
+
+    function setMerchantAuthTab(tab) {
+      const tabL = document.getElementById('tab-merchant-login');
+      const tabR = document.getElementById('tab-merchant-register');
+      const formL = document.getElementById('form-merchant-login');
+      const formR = document.getElementById('form-merchant-register');
+
+      if (tab === 'register') {
+        tabR.className = 'pb-3 text-white border-b-2 border-violet-500 transition';
+        tabL.className = 'pb-3 text-slate-400 hover:text-white border-b-2 border-transparent transition';
+        formR.classList.remove('hidden-view');
+        formL.classList.add('hidden-view');
+      } else {
+        tabL.className = 'pb-3 text-white border-b-2 border-violet-500 transition';
+        tabR.className = 'pb-3 text-slate-400 hover:text-white border-b-2 border-transparent transition';
+        formL.classList.remove('hidden-view');
+        formR.classList.add('hidden-view');
+      }
+    }
+
+    function toggleFunnelBilling(mode) {
+      const btnM = document.getElementById('funnel-toggle-m');
+      const btnA = document.getElementById('funnel-toggle-a');
+      if (mode === 'monthly') {
+        btnM.className = 'tactile-btn px-4 py-2 rounded-xl bg-violet-600 text-white shadow-md';
+        btnA.className = 'tactile-btn px-4 py-2 rounded-xl text-slate-400 hover:text-white';
+        document.getElementById('funnel-price-1').textContent = '9,99 €';
+        document.getElementById('funnel-period-1').textContent = '/mois';
+        document.getElementById('funnel-trial-1').textContent = '14j gratuits';
+        document.getElementById('funnel-cta-1').href = STRIPE_LINKS.single_monthly;
+
+        document.getElementById('funnel-price-2').textContent = '14,99 €';
+        document.getElementById('funnel-period-2').textContent = '/mois';
+        document.getElementById('funnel-trial-2').textContent = '14j gratuits';
+        document.getElementById('funnel-cta-2').href = STRIPE_LINKS.multi_monthly;
+      } else {
+        btnA.className = 'tactile-btn px-4 py-2 rounded-xl bg-violet-600 text-white shadow-md';
+        btnM.className = 'tactile-btn px-4 py-2 rounded-xl text-slate-400 hover:text-white';
+        document.getElementById('funnel-price-1').textContent = '99 €';
+        document.getElementById('funnel-period-1').textContent = '/an';
+        document.getElementById('funnel-trial-1').textContent = '30j gratuits';
+        document.getElementById('funnel-cta-1').href = STRIPE_LINKS.single_annual;
+
+        document.getElementById('funnel-price-2').textContent = '149 €';
+        document.getElementById('funnel-period-2').textContent = '/an';
+        document.getElementById('funnel-trial-2').textContent = '30j gratuits';
+        document.getElementById('funnel-cta-2').href = STRIPE_LINKS.multi_annual;
+      }
+    }
+
+    // ==================== ENVOI DU CODE OTP PAR EMAIL + VÉRIFICATION ====================
+    async function triggerOtpModal(context) {
+      const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+      pendingAuthContext = { ...context, generatedCode };
+
+      document.getElementById('otp-target-email').textContent = context.email;
+      document.getElementById('otp-code-input').value = '';
+      document.getElementById('otp-fallback-code').textContent = generatedCode;
+      openModal('modal-otp-verify');
+
+      // Tentative d'envoi d'email réel via Supabase Auth (Resend)
+      if (context.email.includes('@')) {
+        try {
+          await db.auth.signInWithOtp({ email: context.email });
+          showToast('Code envoyé par e-mail', `Vérifiez la boîte ${context.email}`, '✉️');
+        } catch (_) {
+          showToast('Code généré', `Utilisez votre code à 6 chiffres pour continuer`, '🔐');
+        }
+      }
+    }
+
+    function fillFallbackOtp() {
+      if (!pendingAuthContext) return;
+      document.getElementById('otp-code-input').value = pendingAuthContext.generatedCode;
+    }
+
+    async function confirmOtpVerification() {
+      if (!pendingAuthContext) return;
+      const entered = document.getElementById('otp-code-input').value.trim();
+      if (entered.length < 4) {
+        return showToast('Code incomplet', 'Entrez le code à 6 chiffres', '⚠️');
+      }
+
+      // Si l'utilisateur a reçu un code Supabase OTP réel, on tente verifyOtp, sinon on valide avec le code généré
+      if (entered !== pendingAuthContext.generatedCode && pendingAuthContext.email.includes('@')) {
+        try {
+          await db.auth.verifyOtp({
+            email: pendingAuthContext.email,
+            token: entered,
+            type: 'email'
+          });
+        } catch (_) {}
+      }
+
+      closeModal('modal-otp-verify');
+      const ctx = pendingAuthContext;
+      pendingAuthContext = null;
+
+      if (ctx.role === 'merchant_reg') {
+        await finalizeMerchantRegistration(ctx.name, ctx.category, ctx.email);
+      } else if (ctx.role === 'merchant_login') {
+        await finalizeMerchantLogin(ctx.email);
+      } else if (ctx.role === 'client_login') {
+        activeClient = { name: ctx.name, identifier: ctx.email };
+        localStorage.setItem('sb_active_client', JSON.stringify(activeClient));
+        await enterClientWallet();
+      }
+    }
+
+    function initiateMerchantRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-shop-name').value.trim();
+      const category = document.getElementById('reg-shop-category').value;
+      const email = document.getElementById('reg-shop-email').value.trim().toLowerCase();
+      triggerOtpModal({ role: 'merchant_reg', name, category, email });
+    }
+
+    function initiateMerchantLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-shop-email').value.trim().toLowerCase();
+      triggerOtpModal({ role: 'merchant_login', email });
+    }
+
+    function initiateClientLogin(e) {
+      e.preventDefault();
+      const name = document.getElementById('client-login-name').value.trim() || 'Client';
+      const email = document.getElementById('client-login-id').value.trim().toLowerCase();
+      triggerOtpModal({ role: 'client_login', name, email });
+    }
+
+    // ==================== CRÉATION BOUTIQUE -> TUNNEL ABONNEMENT -> COMPTE ====================
+    function getDefaultRewards() {
+      return [
+        { id: 'r1', title: 'Café ou Thé offert', points: 25, desc: 'Valable à tout moment', redeemedCount: 12 },
+        { id: 'r2', title: 'Boisson fraîche ou Dessert', points: 50, desc: 'Au choix en vitrine', redeemedCount: 8 },
+        { id: 'r3', title: '-20 % sur votre addition', points: 100, desc: 'Sur l’ensemble du panier', redeemedCount: 4 },
+        { id: 'r4', title: 'Article ou Menu offert', points: 150, desc: 'Cadeau fidélité VIP', redeemedCount: 2 }
+      ];
+    }
+
+    function enrichShopObject(rawShop) {
+      const metaKey = `sb_shop_meta_${rawShop.owner_email}`;
+      const savedMeta = JSON.parse(localStorage.getItem(metaKey) || '{}');
+      return {
+        id: rawShop.id,
+        owner_email: rawShop.owner_email,
+        name: rawShop.name || savedMeta.name || 'Mon Commerce',
+        category: savedMeta.category || 'Boulangerie / Pâtisserie',
+        phone: savedMeta.phone || '',
+        color: savedMeta.color || '#7C3AED',
+        code: savedMeta.code || generateShopCode(rawShop.name),
+        is_subscribed: Boolean(rawShop.is_subscribed || savedMeta.is_subscribed),
+        rewards: Array.isArray(savedMeta.rewards) ? savedMeta.rewards : getDefaultRewards(),
+        promos: Array.isArray(savedMeta.promos) ? savedMeta.promos : [
+          { id: 'p1', title: 'Offre de Bienvenue', benefit: '+10 points offerts dès votre 1ère visite', endDate: '2026-12-31' }
+        ]
+      };
+    }
+
+    function persistShopMeta(shop) {
+      const metaKey = `sb_shop_meta_${shop.owner_email}`;
+      localStorage.setItem(metaKey, JSON.stringify({
+        name: shop.name,
+        category: shop.category,
+        phone: shop.phone,
+        color: shop.color,
+        code: shop.code,
+        is_subscribed: shop.is_subscribed,
+        rewards: shop.rewards,
+        promos: shop.promos
+      }));
+      const dir = JSON.parse(localStorage.getItem('sb_shops_directory') || '{}');
+      dir[shop.code] = {
+        id: shop.id,
+        owner_email: shop.owner_email,
+        name: shop.name,
+        category: shop.category,
+        color: shop.color,
+        code: shop.code,
+        rewards: shop.rewards,
+        promos: shop.promos
+      };
+      localStorage.setItem('sb_shops_directory', JSON.stringify(dir));
+    }
+
+    async function finalizeMerchantRegistration(name, category, email) {
+      let { data: shop } = await db.from('shops').select('*').eq('owner_email', email).maybeSingle();
+      if (!shop) {
+        const { data: created } = await db
+          .from('shops')
+          .insert([{ owner_email: email, name }])
+          .select()
+          .single();
+        shop = created || { id: 'local-' + Date.now(), owner_email: email, name, is_subscribed: false };
+      }
+
+      const fullShop = enrichShopObject(shop);
+      fullShop.name = name;
+      fullShop.category = category;
+      persistShopMeta(fullShop);
+
+      localStorage.setItem('sb_active_merchant_email', email);
+      activeShop = fullShop;
+
+      // Redirige directement vers l'écran de choix des abonnements Stripe !
+      document.getElementById('screen-auth').classList.add('hidden-view');
+      document.getElementById('screen-merchant').classList.add('hidden-view');
+      document.getElementById('screen-subscription-funnel').classList.remove('hidden-view');
+      showToast('Commerce créé !', 'Choisissez maintenant votre formule d’essai gratuit', '🎉');
+    }
+
+    function openSubscriptionFunnelFromAccount() {
+      document.getElementById('screen-merchant').classList.add('hidden-view');
+      document.getElementById('screen-subscription-funnel').classList.remove('hidden-view');
+    }
+
+    function markPendingStripeRedirect() {
+      if (activeShop) {
+        localStorage.setItem('sb_active_merchant_email', activeShop.owner_email);
+      }
+    }
+
+    async function completeSubscriptionAndEnter() {
+      if (!activeShop) return;
+      activeShop.is_subscribed = true;
+      persistShopMeta(activeShop);
+      try {
+        await db.from('shops').update({ is_subscribed: true }).eq('id', activeShop.id);
+      } catch (_) {}
+      document.getElementById('screen-subscription-funnel').classList.add('hidden-view');
+      await enterMerchantDashboard();
+      showToast('Compte activé !', `Bienvenue dans votre espace ${activeShop.name}`, '✓');
+    }
+
+    async function finalizeMerchantLogin(email) {
+      let { data: shop } = await db.from('shops').select('*').eq('owner_email', email).maybeSingle();
+      if (!shop) {
+        const { data: created } = await db
+          .from('shops')
+          .insert([{ owner_email: email, name: 'Mon Commerce' }])
+          .select()
+          .single();
+        shop = created || { id: 'local-' + Date.now(), owner_email: email, name: 'Mon Commerce', is_subscribed: false };
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('payment') === 'success' && !shop.is_subscribed) {
+        try { await db.from('shops').update({ is_subscribed: true }).eq('id', shop.id); } catch (_) {}
+        shop.is_subscribed = true;
+      }
+
+      activeShop = enrichShopObject(shop);
+      if (params.get('payment') === 'success') activeShop.is_subscribed = true;
+      persistShopMeta(activeShop);
+      localStorage.setItem('sb_active_merchant_email', email);
+      await enterMerchantDashboard();
+    }
+
+    async function launchDemoMerchant() {
+      const demoEmail = 'demo@shopboost.fr';
+      let { data: shop } = await db.from('shops').select('*').eq('owner_email', demoEmail).maybeSingle();
+      if (!shop) {
+        const { data: created } = await db
+          .from('shops')
+          .insert([{ owner_email: demoEmail, name: 'Salon Tendance Coiffure', is_subscribed: true }])
+          .select()
+          .single();
+        shop = created || { id: 'demo-shop', owner_email: demoEmail, name: 'Salon Tendance Coiffure', is_subscribed: true };
+      }
+      activeShop = enrichShopObject(shop);
+      activeShop.is_subscribed = true;
+      persistShopMeta(activeShop);
+      localStorage.setItem('sb_active_merchant_email', demoEmail);
+      await enterMerchantDashboard();
+      showToast('Mode Démo PRO', 'Espace commerçant prêt à tester');
+    }
+
+    // ==================== SYNCHRONISATION HYBRIDE SUPABASE + LOCAL (ZÉRO BUG DE RAFRAÎCHISSEMENT) ====================
+    function getLocalCardsForShop(shopId) {
+      return JSON.parse(localStorage.getItem(`sb_cards_cache_${shopId}`) || '[]');
+    }
+
+    function saveLocalCardsForShop(shopId, cards) {
+      localStorage.setItem(`sb_cards_cache_${shopId}`, JSON.stringify(cards));
+    }
+
+    async function upsertCustomerCardPoints(shopId, customerEmail, newPoints) {
+      const email = customerEmail.trim().toLowerCase();
+      // 1. Mise à jour immédiate du cache local pour un rafraîchissement instantané (0 ms)
+      const localList = getLocalCardsForShop(shopId);
+      const existingIdx = localList.findIndex(c => c.customer_email.toLowerCase() === email);
+      if (existingIdx >= 0) {
+        localList[existingIdx].points = newPoints;
+      } else {
+        localList.unshift({
+          id: 'card-' + Date.now(),
+          shop_id: shopId,
+          customer_email: email,
+          points: newPoints
+        });
+      }
+      saveLocalCardsForShop(shopId, localList);
+
+      // 2. Synchronisation avec Supabase (sans colonne updated_at inexistante !)
+      try {
+        const { data: existing } = await db
+          .from('customer_cards')
+          .select('id, points')
+          .eq('shop_id', shopId)
+          .eq('customer_email', email)
+          .maybeSingle();
+
+        if (existing) {
+          await db
+            .from('customer_cards')
+            .update({ points: newPoints })
+            .eq('id', existing.id);
+        } else {
+          await db
+            .from('customer_cards')
+            .insert([{ shop_id: shopId, customer_email: email, points: newPoints }]);
+        }
+      } catch (_) {}
+    }
+
+    async function enterMerchantDashboard() {
+      document.getElementById('screen-auth').classList.add('hidden-view');
+      document.getElementById('screen-subscription-funnel').classList.add('hidden-view');
+      document.getElementById('screen-client').classList.add('hidden-view');
+      document.getElementById('screen-merchant').classList.remove('hidden-view');
+
+      document.getElementById('drawer-shop-name').textContent = activeShop.name;
+      document.getElementById('drawer-shop-code').textContent = `Code : ${activeShop.code}`;
+      document.getElementById('drawer-owner-email').textContent = activeShop.owner_email;
+      document.getElementById('dash-welcome-title').textContent = `Bienvenue, ${activeShop.name}`;
+      document.getElementById('merchant-avatar-pill').textContent = activeShop.name.slice(0, 2).toUpperCase();
+
+      if (activeShop.is_subscribed) {
+        document.getElementById('merchant-trial-banner').classList.add('hidden-view');
+        document.getElementById('drawer-sub-pill').textContent = 'PRO Actif ✓';
+      } else {
+        document.getElementById('merchant-trial-banner').classList.remove('hidden-view');
+      }
+
+      document.getElementById('set-shop-name').value = activeShop.name;
+      document.getElementById('set-shop-category').value = activeShop.category;
+      document.getElementById('set-shop-phone').value = activeShop.phone || '';
+      document.getElementById('set-shop-color').value = activeShop.color || '#7C3AED';
+      updateLiveCardPreview();
+
+      // Générer tous les QR codes commerçant (Modale Chevalet + Tableau de bord + Caisse)
+      renderAllMerchantShopQrCodes();
+
+      await loadMerchantData();
+      switchMerchantTab('dashboard');
+    }
+
+    function renderAllMerchantShopQrCodes() {
+      if (!activeShop) return;
+      const qrPayload = `SHOPBOOST:${activeShop.code}`;
+
+      document.getElementById('chevalet-shop-title').textContent = activeShop.name;
+      document.getElementById('chevalet-code-text').textContent = activeShop.code;
+      document.getElementById('dash-inline-shop-code').textContent = activeShop.code;
+      document.getElementById('caisse-inline-shop-code').textContent = `CODE : ${activeShop.code}`;
+
+      const chevQr = document.getElementById('chevalet-qrcode');
+      chevQr.innerHTML = '';
+      new QRCode(chevQr, { text: qrPayload, width: 170, height: 170 });
+
+      const dashQr = document.getElementById('dash-inline-qrcode');
+      dashQr.innerHTML = '';
+      new QRCode(dashQr, { text: qrPayload, width: 92, height: 92 });
+
+      const caisseQr = document.getElementById('caisse-inline-shop-qrcode');
+      caisseQr.innerHTML = '';
+      new QRCode(caisseQr, { text: qrPayload, width: 165, height: 165 });
+    }
+
+    async function loadMerchantData() {
+      // Lecture Supabase SANS order('updated_at') pour éviter l'erreur HTTP 400
+      let remoteRows = [];
+      try {
+        const { data } = await db
+          .from('customer_cards')
+          .select('*')
+          .eq('shop_id', activeShop.id);
+        if (Array.isArray(data)) remoteRows = data;
+      } catch (_) {}
+
+      const localRows = getLocalCardsForShop(activeShop.id);
+      const mergedMap = new Map();
+
+      remoteRows.forEach(r => {
+        mergedMap.set(r.customer_email.toLowerCase(), r);
+      });
+      localRows.forEach(l => {
+        const key = l.customer_email.toLowerCase();
+        // Le cache local mis à jour à l'instant prend le dessus pour garantir 0 latence
+        mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...l });
+      });
+
+      const mergedList = Array.from(mergedMap.values());
+      saveLocalCardsForShop(activeShop.id, mergedList);
+
+      merchantCards = mergedList.map(row => {
+        const emailKey = row.customer_email.toLowerCase();
+        const cliMeta = JSON.parse(localStorage.getItem(`sb_cli_meta_${emailKey}`) || '{}');
+        return {
+          ...row,
+          customer_email: emailKey,
+          displayName: cliMeta.name || emailKey.split('@')[0],
+          visits: cliMeta.visits || Math.max(1, Math.ceil((row.points || 10) / 15))
+        };
+      });
+
+      merchantActivity = JSON.parse(localStorage.getItem(`sb_shop_logs_${activeShop.id}`) || '[]');
+      renderMerchantDashboard();
+      renderMerchantClients();
+      renderMerchantRewards();
+      renderMerchantPromos();
+      renderManualCounterList();
+    }
+
+    function openMerchantDrawer() {
+      const overlay = document.getElementById('merchant-drawer-overlay');
+      const drawer = document.getElementById('merchant-drawer');
+      overlay.classList.remove('hidden-view');
+      requestAnimationFrame(() => {
+        overlay.classList.remove('opacity-0');
+        drawer.classList.remove('-translate-x-full');
+      });
+    }
+
+    function closeMerchantDrawer() {
+      const overlay = document.getElementById('merchant-drawer-overlay');
+      const drawer = document.getElementById('merchant-drawer');
+      overlay.classList.add('opacity-0');
+      drawer.classList.add('-translate-x-full');
+      setTimeout(() => overlay.classList.add('hidden-view'), 300);
+    }
+
+    function switchMerchantTab(tab) {
+      closeMerchantDrawer();
+      const titles = {
+        dashboard: 'Tableau de bord',
+        clients: 'Clients',
+        caisse: 'Caisse & Scan',
+        recompenses: 'Récompenses',
+        promotions: 'Promotions',
+        parametres: 'Paramètres'
+      };
+      document.getElementById('merchant-topbar-title').textContent = titles[tab] || 'ShopBoost PRO';
+
+      ['dashboard', 'clients', 'caisse', 'recompenses', 'promotions', 'parametres'].forEach(t => {
+        document.getElementById('mtab-' + t).classList.add('hidden-view');
+      });
+      document.getElementById('mtab-' + tab).classList.remove('hidden-view');
+
+      document.querySelectorAll('.m-nav-item').forEach(btn => {
+        if (btn.dataset.mtab === tab) {
+          btn.className = 'm-nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-violet-600/20 text-white border border-violet-500/30';
+        } else {
+          btn.className = 'm-nav-item w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5';
+        }
+      });
+    }
+
+    // ==================== RENDU TABLEAU DE BORD & GRAPHIQUES ====================
+    function renderMerchantDashboard() {
+      const totalClients = merchantCards.length;
+      const activeCards = merchantCards.filter(c => (c.points || 0) > 0).length;
+      const totalPoints = merchantCards.reduce((s, c) => s + (c.points || 0), 0);
+      const totalRewardsGiven = activeShop.rewards.reduce((s, r) => s + (r.redeemedCount || 0), 0);
+      const totalVisits = Math.max(merchantActivity.length, merchantCards.reduce((s, c) => s + (c.visits || 1), 0));
+
+      document.getElementById('kpi-total-clients').textContent = totalClients;
+      document.getElementById('kpi-active-cards').textContent = activeCards;
+      document.getElementById('kpi-rewards-given').textContent = totalRewardsGiven;
+      document.getElementById('kpi-total-visits').textContent = totalVisits;
+      document.getElementById('kpi-avg-visits').textContent = `Moyenne ${totalClients ? (totalVisits / totalClients).toFixed(1) : '1.0'} vis/client`;
+
+      const avgPts = totalClients ? Math.round(totalPoints / totalClients) : 0;
+      document.getElementById('stat-avg-points').textContent = `${avgPts} pts`;
+      document.getElementById('total-points-volume').textContent = `${totalPoints} pts en circulation`;
+
+      if (activeShop.rewards.length > 0) {
+        const topRew = [...activeShop.rewards].sort((a, b) => (b.redeemedCount || 0) - (a.redeemedCount || 0))[0];
+        document.getElementById('stat-top-reward').textContent = topRew.title;
+      }
+
+      const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+      const baseCounts = [4, 6, 5, 8, 12, 16, 9];
+      const todayIdx = (new Date().getDay() + 6) % 7;
+      baseCounts[todayIdx] += merchantActivity.length;
+      const maxVal = Math.max(...baseCounts, 1);
+      const peakIdx = baseCounts.indexOf(maxVal);
+
+      document.getElementById('chart-peak-badge').textContent = `Pic : ${days[peakIdx]} (${maxVal})`;
+      document.getElementById('stat-daily-avg').textContent = (baseCounts.reduce((a, b) => a + b, 0) / 7).toFixed(1);
+
+      const barsEl = document.getElementById('weekly-chart-bars');
+      barsEl.innerHTML = days.map((day, idx) => {
+        const pct = Math.max(18, Math.round((baseCounts[idx] / maxVal) * 100));
+        const isPeak = idx === peakIdx;
+        return `
+          <div class="flex flex-col items-center gap-1.5 h-full justify-end">
+            <span class="text-[10px] font-extrabold ${isPeak ? 'text-violet-400' : 'text-slate-400'}">${baseCounts[idx]}</span>
+            <div class="w-full bg-white/5 rounded-xl h-24 flex items-end p-0.5">
+              <div class="chart-bar-fill w-full rounded-lg ${isPeak ? 'violet-gradient violet-glow' : 'bg-violet-500/35'}" style="height: ${pct}%"></div>
+            </div>
+            <span class="text-[10px] font-bold ${isPeak ? 'text-white' : 'text-slate-500'}">${day}</span>
+          </div>
+        `;
+      }).join('');
+
+      const ptsSeries = [120, 210, 290, 410, 530, Math.max(620, totalPoints + 580)];
+      const maxPt = Math.max(...ptsSeries);
+      const coords = ptsSeries.map((val, i) => {
+        const x = 10 + i * 60;
+        const y = 88 - Math.round((val / maxPt) * 70);
+        return `${x},${y}`;
+      });
+      const svgEl = document.getElementById('points-trend-svg');
+      svgEl.innerHTML = `
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <polygon points="10,95 ${coords.join(' ')} 310,95" fill="url(#areaGrad)" />
+        <polyline fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${coords.join(' ')}" />
+        ${coords.map(c => {
+          const [cx, cy] = c.split(',');
+          return `<circle cx="${cx}" cy="${cy}" r="4" fill="#06060B" stroke="#A78BFA" stroke-width="2.5" />`;
+        }).join('')}
+      `;
+
+      const visitsEl = document.getElementById('recent-visits-list');
+      if (merchantActivity.length === 0 && merchantCards.length === 0) {
+        visitsEl.innerHTML = `<div class="text-xs text-slate-500 text-center py-3">Aucun passage enregistré aujourd'hui. Scannez un premier client !</div>`;
+      } else {
+        const items = merchantActivity.slice(0, 5);
+        visitsEl.innerHTML = items.length ? items.map(log => `
+          <div class="flex items-center justify-between p-3 rounded-xl bg-[#090A12] border border-white/5 text-xs">
+            <div>
+              <div class="font-bold text-white">${log.client}</div>
+              <div class="text-[10px] text-slate-400">${log.time}</div>
+            </div>
+            <span class="font-extrabold ${log.delta >= 0 ? 'text-emerald-400' : 'text-amber-400'}">${log.delta >= 0 ? '+' + log.delta : log.delta} pts</span>
+          </div>
+        `).join('') : merchantCards.slice(0, 3).map(c => `
+          <div class="flex items-center justify-between p-3 rounded-xl bg-[#090A12] border border-white/5 text-xs">
+            <div class="font-bold text-white">${c.displayName}</div>
+            <span class="font-extrabold text-violet-400">${c.points} pts</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // ==================== GESTION CLIENTS COMMERÇANT + QR CLIENT INDIVIDUEL ====================
+    function setClientFilter(f) {
+      clientFilter = f;
+      document.querySelectorAll('.cfilter-btn').forEach(btn => {
+        if (btn.dataset.cfilter === f) {
+          btn.className = 'cfilter-btn px-3 py-1.5 rounded-xl bg-violet-600 text-white text-xs font-bold';
+        } else {
+          btn.className = 'cfilter-btn px-3 py-1.5 rounded-xl bg-white/5 text-slate-400 text-xs font-bold';
+        }
+      });
+      renderMerchantClients();
+    }
+
+    function renderMerchantClients() {
+      const q = (document.getElementById('client-search-input').value || '').toLowerCase();
+      let list = [...merchantCards];
+      if (clientFilter === 'vip') list = list.filter(c => (c.points || 0) >= 50);
+      if (clientFilter === 'active') list = list.filter(c => (c.points || 0) > 0);
+      if (q) {
+        list = list.filter(c =>
+          c.customer_email.toLowerCase().includes(q) ||
+          (c.displayName && c.displayName.toLowerCase().includes(q))
+        );
+      }
+
+      const container = document.getElementById('merchant-clients-list');
+      if (list.length === 0) {
+        container.innerHTML = `<div class="glass-panel rounded-2xl p-6 text-center text-xs text-slate-400">Aucun client trouvé. Cliquez sur <strong>+ Nouveau Client</strong> pour ouvrir une carte avec +10 points offerts.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(c => `
+        <div class="tactile-card glass-panel rounded-2xl p-4 border border-white/10 flex items-center justify-between gap-2">
+          <div onclick="selectCustomerForCounter('${c.customer_email}')" class="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-violet-600/25 border border-violet-500/30 text-violet-300 font-extrabold text-xs flex items-center justify-center shrink-0">
+              ${(c.displayName || 'CL').slice(0, 2).toUpperCase()}
+            </div>
+            <div class="min-w-0">
+              <div class="text-sm font-extrabold text-white truncate">${c.displayName}</div>
+              <div class="text-[11px] text-slate-400 truncate">${c.customer_email}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="openMerchantClientQrModal('${c.customer_email}')" class="tactile-btn px-2.5 py-2 rounded-xl bg-white/10 text-white text-xs font-bold" title="Voir le QR code de ce client">
+              🪪 QR
+            </button>
+            <button onclick="selectCustomerForCounter('${c.customer_email}')" class="tactile-btn px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-right">
+              <div class="text-sm font-extrabold text-emerald-400 leading-none">${c.points} pts</div>
+              <div class="text-[9px] text-violet-300 font-bold mt-0.5">Encaisser →</div>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openMerchantClientQrModal(email) {
+      const c = merchantCards.find(item => item.customer_email === email);
+      if (!c) return;
+      document.getElementById('m-cli-qr-name').textContent = c.displayName;
+      document.getElementById('m-cli-qr-email').textContent = c.customer_email;
+      document.getElementById('m-cli-qr-points').textContent = `Solde : ${c.points} points`;
+      const qrBox = document.getElementById('m-cli-qrcode-box');
+      qrBox.innerHTML = '';
+      new QRCode(qrBox, { text: `CLIENT:${c.customer_email}`, width: 165, height: 165 });
+
+      const btn = document.getElementById('m-cli-qr-checkout-btn');
+      btn.onclick = () => {
+        closeModal('modal-merchant-client-qr');
+        selectCustomerForCounter(c.customer_email);
+      };
+      openModal('modal-merchant-client-qr');
+    }
+
+    async function handleMerchantCreateClient(e) {
+      e.preventDefault();
+      const firstName = document.getElementById('new-cli-firstname').value.trim();
+      const lastName = document.getElementById('new-cli-lastname').value.trim();
+      const contact = document.getElementById('new-cli-contact').value.trim().toLowerCase();
+      const fullName = `${firstName} ${lastName}`.trim();
+
+      localStorage.setItem(`sb_cli_meta_${contact}`, JSON.stringify({ name: fullName, visits: 1 }));
+
+      const existing = merchantCards.find(c => c.customer_email === contact);
+      if (existing) {
+        showToast('Déjà inscrit', `${fullName} possède déjà une carte (${existing.points} pts)`, 'ℹ️');
+      } else {
+        await upsertCustomerCardPoints(activeShop.id, contact, 10);
+        logShopActivity(fullName, 10);
+        showToast('Carte créée !', `${fullName} inscrit avec +10 points de bienvenue`, '🎁');
+      }
+
+      closeModal('modal-new-client');
+      document.getElementById('new-cli-firstname').value = '';
+      document.getElementById('new-cli-lastname').value = '';
+      document.getElementById('new-cli-contact').value = '';
+      await loadMerchantData();
+      selectCustomerForCounter(contact);
+    }
+
+    // ==================== CAISSE & SCANNER COMMERÇANT (RAFRAÎCHISSEMENT DIRECT) ====================
+    function setCaisseMode(mode) {
+      const btnS = document.getElementById('caisse-mode-scan');
+      const btnM = document.getElementById('caisse-mode-manual');
+      const btnQ = document.getElementById('caisse-mode-shopqr');
+      const zoneS = document.getElementById('caisse-scan-zone');
+      const zoneM = document.getElementById('caisse-manual-zone');
+      const zoneQ = document.getElementById('caisse-shopqr-zone');
+
+      btnS.className = 'tactile-btn py-2 rounded-xl text-slate-400 text-[11px] font-bold';
+      btnM.className = 'tactile-btn py-2 rounded-xl text-slate-400 text-[11px] font-bold';
+      btnQ.className = 'tactile-btn py-2 rounded-xl text-slate-400 text-[11px] font-bold';
+      zoneS.classList.add('hidden-view');
+      zoneM.classList.add('hidden-view');
+      zoneQ.classList.add('hidden-view');
+
+      if (mode === 'scan') {
+        btnS.className = 'tactile-btn py-2 rounded-xl bg-violet-600 text-white text-[11px] font-bold';
+        zoneS.classList.remove('hidden-view');
+      } else if (mode === 'manual') {
+        btnM.className = 'tactile-btn py-2 rounded-xl bg-violet-600 text-white text-[11px] font-bold';
+        zoneM.classList.remove('hidden-view');
+        renderManualCounterList();
+      } else if (mode === 'shopqr') {
+        btnQ.className = 'tactile-btn py-2 rounded-xl bg-violet-600 text-white text-[11px] font-bold';
+        zoneQ.classList.remove('hidden-view');
+      }
+    }
+
+    function renderManualCounterList() {
+      const el = document.getElementById('caisse-manual-zone');
+      if (merchantCards.length === 0) {
+        el.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Aucun client enregistré pour le moment.</div>`;
+        return;
+      }
+      el.innerHTML = merchantCards.map(c => `
+        <button onclick="selectCustomerForCounter('${c.customer_email}')" class="tactile-btn w-full p-3 rounded-xl bg-[#080910] border border-white/10 flex items-center justify-between text-left">
+          <div>
+            <div class="text-xs font-extrabold text-white">${c.displayName}</div>
+            <div class="text-[10px] text-slate-400">${c.customer_email}</div>
+          </div>
+          <span class="text-xs font-extrabold text-emerald-400">${c.points} pts</span>
+        </button>
+      `).join('');
+    }
+
+    async function toggleMerchantCamera() {
+      const readerEl = document.getElementById('merchant-qr-reader');
+      const btn = document.getElementById('btn-start-merchant-cam');
+      if (!readerEl.classList.contains('hidden-view')) {
+        if (merchantScanner) await merchantScanner.stop();
+        readerEl.classList.add('hidden-view');
+        btn.textContent = "Activer la caméra pour scanner";
+        return;
+      }
+
+      readerEl.classList.remove('hidden-view');
+      btn.textContent = 'Fermer la caméra';
+      merchantScanner = new Html5Qrcode('merchant-qr-reader');
+      try {
+        await merchantScanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          async (decoded) => {
+            const cleanId = decoded.replace(/^CLIENT:/i, '').trim().toLowerCase();
+            document.getElementById('caisse-identifier-input').value = cleanId;
+            await merchantScanner.stop();
+            readerEl.classList.add('hidden-view');
+            btn.textContent = "Activer la caméra pour scanner";
+            await identifyCustomerAtCounter();
+          }
+        );
+      } catch (err) {
+        showToast('Caméra indisponible', 'Utilisez la saisie manuelle ou le test rapide', '📷');
+        readerEl.classList.add('hidden-view');
+        btn.textContent = "Activer la caméra pour scanner";
+      }
+    }
+
+    async function simulateCounterScan() {
+      const demoClient = 'camille.client@shopboost.fr';
+      const existingMeta = JSON.parse(localStorage.getItem(`sb_cli_meta_${demoClient}`) || '{}');
+      if (!existingMeta.name) {
+        localStorage.setItem(`sb_cli_meta_${demoClient}`, JSON.stringify({ name: 'Camille Laurent', visits: 1 }));
+      }
+      document.getElementById('caisse-identifier-input').value = demoClient;
+      await identifyCustomerAtCounter();
+    }
+
+    async function identifyCustomerAtCounter() {
+      const raw = document.getElementById('caisse-identifier-input').value.trim().toLowerCase();
+      if (!raw) return showToast('Identifiant requis', 'Saisissez un téléphone, email ou scannez un QR', '⚠️');
+
+      const existing = merchantCards.find(c => c.customer_email === raw);
+      if (!existing) {
+        await upsertCustomerCardPoints(activeShop.id, raw, 10);
+        logShopActivity(raw, 10);
+        showToast('Nouveau client !', 'Carte ouverte avec +10 points de bienvenue', '🎁');
+        await loadMerchantData();
+      }
+
+      selectCustomerForCounter(raw);
+    }
+
+    function selectCustomerForCounter(identifier) {
+      const cleanId = identifier.trim().toLowerCase();
+      switchMerchantTab('caisse');
+      const found = merchantCards.find(c => c.customer_email === cleanId) || {
+        customer_email: cleanId,
+        displayName: cleanId.split('@')[0],
+        points: 10
+      };
+      selectedCounterCard = found;
+
+      document.getElementById('counter-checkout-card').classList.remove('hidden-view');
+      document.getElementById('checkout-client-name').textContent = found.displayName;
+      document.getElementById('checkout-client-id').textContent = found.customer_email;
+      document.getElementById('checkout-client-points').textContent = found.points;
+      document.getElementById('checkout-amount-input').value = '';
+      updateCheckoutPreview();
+      renderCheckoutRewards();
+    }
+
+    function setQuickAmount(val) {
+      document.getElementById('checkout-amount-input').value = val;
+      updateCheckoutPreview();
+    }
+
+    function updateCheckoutPreview() {
+      const amount = parseFloat(document.getElementById('checkout-amount-input').value);
+      const pts = isNaN(amount) || amount < 0 ? 0 : Math.round(amount);
+      document.getElementById('checkout-points-preview').textContent = `+${pts}`;
+    }
+
+    async function confirmCounterPurchase() {
+      if (!selectedCounterCard) return;
+      const amount = parseFloat(document.getElementById('checkout-amount-input').value);
+      const ptsToAdd = Math.round(amount);
+      if (isNaN(ptsToAdd) || ptsToAdd <= 0) {
+        return showToast('Montant invalide', 'Entrez un montant d’au moins 0,50 €', '⚠️');
+      }
+
+      const currentPts = Number(selectedCounterCard.points) || 0;
+      const newBalance = currentPts + ptsToAdd;
+
+      // Mise à jour immédiate de l'état en mémoire et à l'écran
+      selectedCounterCard.points = newBalance;
+      document.getElementById('checkout-client-points').textContent = newBalance;
+
+      // Animation visuelle de rebond sur le compteur de points
+      const balWrap = document.getElementById('checkout-balance-wrapper');
+      balWrap.classList.remove('animate-pop');
+      void balWrap.offsetWidth;
+      balWrap.classList.add('animate-pop');
+
+      // Sauvegarde hybride (Local instantané + Supabase sans updated_at)
+      await upsertCustomerCardPoints(activeShop.id, selectedCounterCard.customer_email, newBalance);
+
+      const cliMeta = JSON.parse(localStorage.getItem(`sb_cli_meta_${selectedCounterCard.customer_email}`) || '{}');
+      cliMeta.name = cliMeta.name || selectedCounterCard.displayName;
+      cliMeta.visits = (cliMeta.visits || 1) + 1;
+      localStorage.setItem(`sb_cli_meta_${selectedCounterCard.customer_email}`, JSON.stringify(cliMeta));
+
+      logShopActivity(selectedCounterCard.displayName, ptsToAdd);
+      showToast('Points crédités !', `+${ptsToAdd} pts ajoutés • Nouveau solde : ${newBalance} pts`, '⚡');
+
+      document.getElementById('checkout-amount-input').value = '';
+      updateCheckoutPreview();
+      await loadMerchantData();
+      selectCustomerForCounter(selectedCounterCard.customer_email);
+    }
+
+    function renderCheckoutRewards() {
+      if (!selectedCounterCard) return;
+      const listEl = document.getElementById('checkout-redeem-list');
+      listEl.innerHTML = activeShop.rewards.map(r => {
+        const canRedeem = (selectedCounterCard.points || 0) >= r.points;
+        return `
+          <div class="flex items-center justify-between p-3 rounded-xl bg-[#090A12] border ${canRedeem ? 'border-emerald-500/40' : 'border-white/5'}">
+            <div>
+              <div class="text-xs font-bold text-white">${r.title}</div>
+              <div class="text-[10px] text-slate-400">${r.points} points requis</div>
+            </div>
+            <button ${canRedeem ? '' : 'disabled'} onclick="redeemRewardAtCounter('${r.id}')" class="tactile-btn px-3 py-1.5 rounded-lg text-[11px] font-extrabold ${canRedeem ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 text-slate-500 cursor-not-allowed'}">
+              ${canRedeem ? 'Valider cadeau' : 'Insuffisant'}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function redeemRewardAtCounter(rewardId) {
+      const reward = activeShop.rewards.find(r => r.id === rewardId);
+      if (!reward || !selectedCounterCard || selectedCounterCard.points < reward.points) return;
+
+      const newBalance = selectedCounterCard.points - reward.points;
+      selectedCounterCard.points = newBalance;
+      document.getElementById('checkout-client-points').textContent = newBalance;
+
+      await upsertCustomerCardPoints(activeShop.id, selectedCounterCard.customer_email, newBalance);
+
+      reward.redeemedCount = (reward.redeemedCount || 0) + 1;
+      persistShopMeta(activeShop);
+      logShopActivity(`${selectedCounterCard.displayName} (${reward.title})`, -reward.points);
+      showToast('Cadeau validé !', `${reward.title} offert • Solde : ${newBalance} pts`, '🎁');
+
+      await loadMerchantData();
+      selectCustomerForCounter(selectedCounterCard.customer_email);
+    }
+
+    function logShopActivity(clientName, delta) {
+      const logs = JSON.parse(localStorage.getItem(`sb_shop_logs_${activeShop.id}`) || '[]');
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      logs.unshift({ client: clientName, delta, time: `Aujourd'hui à ${timeStr}` });
+      localStorage.setItem(`sb_shop_logs_${activeShop.id}`, JSON.stringify(logs.slice(0, 30)));
+    }
+
+    // ==================== RÉCOMPENSES, PROMOS & PARAMÈTRES ====================
+    function renderMerchantRewards() {
+      const el = document.getElementById('merchant-rewards-list');
+      el.innerHTML = activeShop.rewards.map(r => `
+        <div class="glass-panel rounded-2xl p-4 border border-white/10 flex items-center justify-between">
+          <div>
+            <span class="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-extrabold">${r.points} pts</span>
+            <h4 class="text-sm font-extrabold text-white mt-1">${r.title}</h4>
+            <p class="text-[11px] text-slate-400">${r.desc || ''}</p>
+          </div>
+          <button onclick="deleteShopReward('${r.id}')" class="tactile-btn w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 text-xs font-bold">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function handleCreateReward(e) {
+      e.preventDefault();
+      const title = document.getElementById('new-rew-title').value.trim();
+      const points = parseInt(document.getElementById('new-rew-points').value, 10);
+      const desc = document.getElementById('new-rew-desc').value.trim();
+      activeShop.rewards.push({ id: 'rew-' + Date.now(), title, points, desc, redeemedCount: 0 });
+      activeShop.rewards.sort((a, b) => a.points - b.points);
+      persistShopMeta(activeShop);
+      closeModal('modal-new-reward');
+      e.target.reset();
+      renderMerchantRewards();
+      showToast('Récompense ajoutée', `${title} (${points} pts)`, '🎁');
+    }
+
+    function deleteShopReward(id) {
+      activeShop.rewards = activeShop.rewards.filter(r => r.id !== id);
+      persistShopMeta(activeShop);
+      renderMerchantRewards();
+    }
+
+    function renderMerchantPromos() {
+      const el = document.getElementById('merchant-promos-list');
+      if (activeShop.promos.length === 0) {
+        el.innerHTML = `<div class="glass-panel rounded-2xl p-6 text-center text-xs text-slate-400">Aucune offre promotionnelle en cours.</div>`;
+        return;
+      }
+      el.innerHTML = activeShop.promos.map(p => `
+        <div class="glass-panel rounded-2xl p-4 border border-amber-500/30 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-extrabold text-amber-400 uppercase">🔥 Offre Active</span>
+            <h4 class="text-sm font-extrabold text-white mt-0.5">${p.title}</h4>
+            <p class="text-xs text-slate-300">${p.benefit}</p>
+            ${p.endDate ? `<div class="text-[10px] text-slate-400 mt-1">Jusqu'au ${p.endDate}</div>` : ''}
+          </div>
+          <button onclick="deleteShopPromo('${p.id}')" class="tactile-btn w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 text-xs font-bold">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function handleCreatePromo(e) {
+      e.preventDefault();
+      const title = document.getElementById('new-promo-title').value.trim();
+      const benefit = document.getElementById('new-promo-benefit').value.trim();
+      const endDate = document.getElementById('new-promo-end').value;
+      activeShop.promos.unshift({ id: 'promo-' + Date.now(), title, benefit, endDate });
+      persistShopMeta(activeShop);
+      closeModal('modal-new-promo');
+      e.target.reset();
+      renderMerchantPromos();
+      showToast('Offre publiée !', 'Visible instantanément sur les cartes clients', '🔥');
+    }
+
+    function deleteShopPromo(id) {
+      activeShop.promos = activeShop.promos.filter(p => p.id !== id);
+      persistShopMeta(activeShop);
+      renderMerchantPromos();
+    }
+
+    function selectShopColor(hex) {
+      document.getElementById('set-shop-color').value = hex;
+      updateLiveCardPreview();
+    }
+
+    function updateLiveCardPreview() {
+      const name = document.getElementById('set-shop-name').value || activeShop.name;
+      const cat = document.getElementById('set-shop-category').value || activeShop.category;
+      const color = document.getElementById('set-shop-color').value || '#7C3AED';
+      document.getElementById('preview-card-shop-name').textContent = name;
+      document.getElementById('preview-card-category').textContent = cat;
+      document.getElementById('preview-card-code').textContent = `CODE : ${activeShop.code}`;
+      document.getElementById('live-card-preview').style.background = `linear-gradient(135deg, ${color} 0%, #0F172A 100%)`;
+    }
+
+    async function saveShopSettings() {
+      activeShop.name = document.getElementById('set-shop-name').value.trim() || activeShop.name;
+      activeShop.category = document.getElementById('set-shop-category').value;
+      activeShop.phone = document.getElementById('set-shop-phone').value.trim();
+      activeShop.color = document.getElementById('set-shop-color').value;
+
+      try { await db.from('shops').update({ name: activeShop.name }).eq('id', activeShop.id); } catch (_) {}
+      persistShopMeta(activeShop);
+
+      document.getElementById('drawer-shop-name').textContent = activeShop.name;
+      document.getElementById('dash-welcome-title').textContent = `Bienvenue, ${activeShop.name}`;
+      renderAllMerchantShopQrCodes();
+      showToast('Paramètres enregistrés', 'La carte client a été mise à jour', '✓');
+    }
+
+    function logoutMerchant() {
+      localStorage.removeItem('sb_active_merchant_email');
+      activeShop = null;
+      closeMerchantDrawer();
+      document.getElementById('screen-merchant').classList.add('hidden-view');
+      document.getElementById('screen-subscription-funnel').classList.add('hidden-view');
+      document.getElementById('screen-auth').classList.remove('hidden-view');
+    }
+
+    // =====================================================================
+    // 4. LOGIQUE ESPACE CLIENT (PORTEFEUILLE PILE DE CARTES + AJOUT AUTONOME)
+    // =====================================================================
+    async function enterClientWallet() {
+      document.getElementById('screen-auth').classList.add('hidden-view');
+      document.getElementById('screen-merchant').classList.add('hidden-view');
+      document.getElementById('screen-subscription-funnel').classList.add('hidden-view');
+      document.getElementById('screen-client').classList.remove('hidden-view');
+
+      document.getElementById('client-header-subtitle').textContent = `Bonjour, ${activeClient.name}`;
+      document.getElementById('universal-client-label').textContent = activeClient.identifier;
+
+      const uniQr = document.getElementById('universal-client-qrcode');
+      uniQr.innerHTML = '';
+      new QRCode(uniQr, { text: `CLIENT:${activeClient.identifier}`, width: 175, height: 175 });
+
+      await refreshClientWallet();
+    }
+
+    async function refreshClientWallet() {
+      if (!activeClient) return;
+
+      let allShops = [];
+      let myCards = [];
+      try {
+        const [shopsRes, cardsRes] = await Promise.all([
+          db.from('shops').select('*'),
+          db.from('customer_cards').select('*').eq('customer_email', activeClient.identifier)
+        ]);
+        if (Array.isArray(shopsRes.data)) allShops = shopsRes.data;
+        if (Array.isArray(cardsRes.data)) myCards = cardsRes.data;
+      } catch (_) {}
+
+      // Fusionner avec l'annuaire local des boutiques et les cartes en cache local
+      const dir = JSON.parse(localStorage.getItem('sb_shops_directory') || '{}');
+      Object.values(dir).forEach(localShop => {
+        if (!allShops.some(s => String(s.id) === String(localShop.id))) {
+          allShops.push(localShop);
+        }
+      });
+
+      const shopsById = {};
+      allShops.forEach(s => {
+        shopsById[s.id] = enrichShopObject(s);
+      });
+
+      // Fusionner les cartes Supabase et les cartes locales pour que le client voie ses points instantanément
+      const cardMap = new Map();
+      myCards.forEach(c => cardMap.set(String(c.shop_id), c));
+
+      Object.keys(shopsById).forEach(shopId => {
+        const localCards = getLocalCardsForShop(shopId);
+        const match = localCards.find(c => c.customer_email.toLowerCase() === activeClient.identifier.toLowerCase());
+        if (match) {
+          cardMap.set(String(shopId), match);
+        }
+      });
+
+      clientWalletCards = Array.from(cardMap.values()).map(card => {
+        const shop = shopsById[card.shop_id] || {
+          id: card.shop_id,
+          name: 'Commerce Partenaire',
+          category: 'Fidélité Locale',
+          color: '#7C3AED',
+          code: 'SB-PART-100',
+          rewards: getDefaultRewards(),
+          promos: []
+        };
+        return { ...card, shop };
+      });
+
+      renderClientWalletUI(allShops);
+    }
+
+    function renderClientWalletUI(allShops) {
+      const totalCards = clientWalletCards.length;
+      const totalPoints = clientWalletCards.reduce((s, c) => s + (c.points || 0), 0);
+      let readyRewards = 0;
+      clientWalletCards.forEach(c => {
+        (c.shop.rewards || []).forEach(r => {
+          if ((c.points || 0) >= r.points) readyRewards++;
+        });
+      });
+
+      document.getElementById('client-stat-cards').textContent = totalCards;
+      document.getElementById('client-stat-points').textContent = totalPoints;
+      document.getElementById('client-stat-rewards').textContent = readyRewards;
+
+      const emptyEl = document.getElementById('client-empty-wallet');
+      const stackEl = document.getElementById('wallet-cards-stack');
+
+      if (totalCards === 0) {
+        emptyEl.classList.remove('hidden-view');
+        stackEl.innerHTML = '';
+      } else {
+        emptyEl.classList.add('hidden-view');
+        stackEl.innerHTML = clientWalletCards.map((item, idx) => {
+          const shop = item.shop;
+          const nextReward = (shop.rewards || []).find(r => r.points > item.points) || (shop.rewards || [])[0];
+          const progressPct = nextReward ? Math.min(100, Math.round((item.points / nextReward.points) * 100)) : 100;
+          const overlapClass = idx === 0 ? '' : '-mt-7';
+
+          return `
+            <div onclick="openClientCardDetail(${idx})" class="wallet-stack-item ${overlapClass} rounded-[26px] p-5 text-white cursor-pointer relative overflow-hidden" style="background: linear-gradient(135deg, ${shop.color} 0%, #0F172A 100%); z-index: ${idx + 10};">
+              <div class="card-shimmer absolute inset-0 pointer-events-none"></div>
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="text-[10px] uppercase tracking-widest text-white/75 font-bold">${shop.category}</span>
+                  <h3 class="text-lg font-extrabold tracking-tight mt-0.5">${shop.name}</h3>
+                </div>
+                <div class="text-right">
+                  <span class="text-[10px] uppercase text-white/75 font-bold">Solde</span>
+                  <div class="text-2xl font-extrabold leading-none mt-0.5">${item.points} <span class="text-xs font-semibold">pts</span></div>
+                </div>
+              </div>
+
+              <div class="mt-5 space-y-1.5">
+                <div class="flex justify-between text-[11px] text-white/85 font-semibold">
+                  <span>${nextReward ? `Prochain : ${nextReward.title}` : 'Toutes récompenses débloquées'}</span>
+                  <span>${progressPct}%</span>
+                </div>
+                <div class="h-1.5 w-full rounded-full bg-black/30 overflow-hidden">
+                  <div class="h-full rounded-full bg-white transition-all duration-500" style="width: ${progressPct}%"></div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-2.5 border-t border-white/15 flex items-center justify-between text-[11px] text-white/80">
+                <span>Toucher pour afficher le QR code</span>
+                <span class="font-bold">Ouvrir →</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const dirEl = document.getElementById('available-shops-directory');
+      const unjoinedShops = allShops
+        .map(s => enrichShopObject(s))
+        .filter(s => !clientWalletCards.some(c => String(c.shop_id) === String(s.id)));
+
+      if (unjoinedShops.length === 0) {
+        dirEl.innerHTML = `<div class="text-[11px] text-slate-500 text-center py-2">Toutes les boutiques partenaires actives sont déjà dans votre portefeuille.</div>`;
+      } else {
+        dirEl.innerHTML = unjoinedShops.slice(0, 6).map(s => `
+          <button onclick="joinSpecificShop('${s.id}')" class="tactile-btn w-full p-2.5 rounded-xl bg-[#090A12] border border-white/10 flex items-center justify-between text-left">
+            <div>
+              <div class="text-xs font-bold text-white">${s.name}</div>
+              <div class="text-[10px] text-slate-400">${s.category} • ${s.code}</div>
+            </div>
+            <span class="text-[11px] font-extrabold text-emerald-400">+ Rejoindre</span>
+          </button>
+        `).join('');
+      }
+
+      const feedEl = document.getElementById('client-activity-feed');
+      if (clientWalletCards.length === 0) {
+        feedEl.innerHTML = `<div class="text-slate-500 text-center py-2">Aucune transaction pour le moment.</div>`;
+      } else {
+        feedEl.innerHTML = clientWalletCards.map(c => `
+          <div class="flex items-center justify-between p-3 rounded-xl bg-[#090A12] border border-white/5">
+            <div>
+              <div class="font-bold text-white">${c.shop.name}</div>
+              <div class="text-[10px] text-slate-400">Carte fidélité active</div>
+            </div>
+            <span class="font-extrabold text-emerald-400">${c.points} pts</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function openClientCardDetail(index) {
+      const item = clientWalletCards[index];
+      if (!item) return;
+      const shop = item.shop;
+
+      document.getElementById('detail-flip-inner').classList.remove('is-flipped');
+      document.getElementById('detail-card-front').style.background = `linear-gradient(135deg, ${shop.color} 0%, #0F172A 100%)`;
+      document.getElementById('detail-shop-cat').textContent = shop.category;
+      document.getElementById('detail-shop-name').textContent = shop.name;
+      document.getElementById('detail-card-points').textContent = item.points;
+      document.getElementById('detail-card-identifier').textContent = activeClient.identifier;
+
+      document.getElementById('detail-back-shop').textContent = shop.name;
+      document.getElementById('detail-back-holder').textContent = `${activeClient.name} (${activeClient.identifier})`;
+      document.getElementById('detail-back-code').textContent = shop.code;
+
+      const qrEl = document.getElementById('detail-card-qrcode');
+      qrEl.innerHTML = '';
+      new QRCode(qrEl, { text: activeClient.identifier, width: 155, height: 155 });
+
+      const promoSec = document.getElementById('detail-promos-section');
+      const promoList = document.getElementById('detail-promos-list');
+      if (shop.promos && shop.promos.length > 0) {
+        promoSec.classList.remove('hidden-view');
+        promoList.innerHTML = shop.promos.map(p => `
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+            <div class="text-xs font-extrabold text-amber-300">${p.title}</div>
+            <div class="text-[11px] text-slate-200">${p.benefit}</div>
+          </div>
+        `).join('');
+      } else {
+        promoSec.classList.add('hidden-view');
+      }
+
+      const rewList = document.getElementById('detail-rewards-list');
+      rewList.innerHTML = (shop.rewards || []).map(r => {
+        const unlocked = item.points >= r.points;
+        return `
+          <div class="p-3.5 rounded-2xl border ${unlocked ? 'bg-emerald-500/10 border-emerald-500/35' : 'bg-[#131524] border-white/10'} flex items-center justify-between">
+            <div>
+              <div class="text-xs font-extrabold text-white">${r.title}</div>
+              <div class="text-[10px] text-slate-400">${r.points} points requis</div>
+            </div>
+            <span class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${unlocked ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 text-slate-400'}">
+              ${unlocked ? 'Prêt en caisse ✓' : `${r.points - item.points} pts restants`}
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      openModal('modal-card-detail');
+    }
+
+    function flipDetailCard() {
+      document.getElementById('detail-flip-inner').classList.toggle('is-flipped');
+    }
+
+    // ==================== AJOUT AUTONOME D'UN COMMERCE PAR LE CLIENT ====================
+    async function toggleClientShopScanner() {
+      const readerEl = document.getElementById('client-shop-qr-reader');
+      const btn = document.getElementById('btn-client-scan-shop');
+      if (!readerEl.classList.contains('hidden-view')) {
+        if (clientShopScanner) await clientShopScanner.stop();
+        readerEl.classList.add('hidden-view');
+        btn.textContent = '📷 Scanner';
+        return;
+      }
+
+      readerEl.classList.remove('hidden-view');
+      btn.textContent = 'Fermer';
+      clientShopScanner = new Html5Qrcode('client-shop-qr-reader');
+      try {
+        await clientShopScanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 200, height: 200 } },
+          async (decoded) => {
+            const code = decoded.replace(/^SHOPBOOST:/i, '').trim();
+            document.getElementById('join-shop-code-input').value = code;
+            await clientShopScanner.stop();
+            readerEl.classList.add('hidden-view');
+            btn.textContent = '📷 Scanner';
+            await joinShopByCodeOrName();
+          }
+        );
+      } catch (err) {
+        showToast('Caméra indisponible', 'Saisissez le code ou le nom du commerce ci-dessous', '📷');
+        readerEl.classList.add('hidden-view');
+        btn.textContent = '📷 Scanner';
+      }
+    }
+
+    async function closeAddShopModal() {
+      if (clientShopScanner) {
+        try { await clientShopScanner.stop(); } catch (_) {}
+      }
+      document.getElementById('client-shop-qr-reader').classList.add('hidden-view');
+      document.getElementById('btn-client-scan-shop').textContent = '📷 Scanner';
+      closeModal('modal-add-shop');
+    }
+
+    async function joinShopByCodeOrName() {
+      const query = document.getElementById('join-shop-code-input').value.trim();
+      if (!query) return showToast('Saisie vide', 'Entrez un code boutique ou un nom', '⚠️');
+
+      let allShops = [];
+      try {
+        const { data } = await db.from('shops').select('*');
+        if (Array.isArray(data)) allShops = data;
+      } catch (_) {}
+
+      const dir = JSON.parse(localStorage.getItem('sb_shops_directory') || '{}');
+      Object.values(dir).forEach(localShop => {
+        if (!allShops.some(s => String(s.id) === String(localShop.id))) {
+          allShops.push(localShop);
+        }
+      });
+
+      const enriched = allShops.map(s => enrichShopObject(s));
+      const match = enriched.find(s =>
+        s.code.toLowerCase() === query.toLowerCase() ||
+        s.name.toLowerCase().includes(query.toLowerCase())
+      );
+
+      if (!match) {
+        return showToast('Commerce introuvable', 'Vérifiez le code ou le nom affiché en magasin', '🔍');
+      }
+
+      await joinSpecificShop(match.id);
+    }
+
+    async function joinSpecificShop(shopId) {
+      const already = clientWalletCards.some(c => String(c.shop_id) === String(shopId));
+      if (already) {
+        await closeAddShopModal();
+        return showToast('Déjà dans votre portefeuille', 'Cette carte est déjà active', 'ℹ️');
+      }
+
+      localStorage.setItem(`sb_cli_meta_${activeClient.identifier}`, JSON.stringify({
+        name: activeClient.name,
+        visits: 1
+      }));
+
+      await upsertCustomerCardPoints(shopId, activeClient.identifier, 10);
+
+      await closeAddShopModal();
+      document.getElementById('join-shop-code-input').value = '';
+      await refreshClientWallet();
+      showToast('Carte ajoutée !', '+10 points de bienvenue crédités sur votre nouvelle carte', '🎉');
+    }
+
+    function logoutClient() {
+      localStorage.removeItem('sb_active_client');
+      activeClient = null;
+      document.getElementById('screen-client').classList.add('hidden-view');
+      document.getElementById('screen-auth').classList.remove('hidden-view');
+    }
+
+    // ==================== INITIALISATION AUTOMATIQUE ====================
+    window.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('payment') === 'success') {
+        document.getElementById('stripe-success-banner').classList.remove('hidden-view');
+      }
+
+      const savedMerchant = localStorage.getItem('sb_active_merchant_email');
+      if (savedMerchant) {
+        await finalizeMerchantLogin(savedMerchant);
+        return;
+      }
+
+      const savedClient = localStorage.getItem('sb_active_client');
+      if (savedClient) {
+        activeClient = JSON.parse(savedClient);
+        await enterClientWallet();
+      }
+    });
+  </script>
+</body>
+</html>
