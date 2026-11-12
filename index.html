@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ShopBoost — Carte de fidélité digitale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wallet-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255,255,255,0.08) inset;
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+    }
+    .wallet-card:active {
+      transform: scale(0.98);
+    }
+    .wallet-shimmer {
+      background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.07) 40%, transparent 60%);
+    }
+    .hidden-view { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- NAVIGATION BAR -->
+  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/70">
+    <div class="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
+      <button onclick="switchView('home')" class="flex items-center gap-2 font-extrabold text-lg tracking-tight text-slate-900">
+        <span class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black">SB</span>
+        ShopBoost
+      </button>
+      <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+        <button id="nav-client" onclick="switchView('client')" class="px-3 py-1.5 rounded-lg transition bg-white text-slate-900 shadow-sm">Client</button>
+        <button id="nav-merchant" onclick="switchView('merchant')" class="px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">Commerçant</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- BANNIÈRE PAIEMENT VALIDÉ -->
+  <div id="payment-banner" class="hidden-view bg-emerald-600 text-white text-center text-xs font-semibold py-2.5 px-4">
+    Abonnement activé avec succès ! Votre caisse ShopBoost est débloquée.
+  </div>
+
+  <main class="flex-1 max-w-md w-full mx-auto px-4 py-6">
+
+    <!-- ==================== VUE ACCUEIL ==================== -->
+    <section id="view-home" class="space-y-6">
+      <div class="text-center space-y-2 pt-2">
+        <span class="inline-block px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold">100 % sans application à télécharger</span>
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">La fidélité locale,<br/>façon Apple Wallet.</h1>
+        <p class="text-sm text-slate-500">1 € dépensé = 1 point gagné. Un seul QR code pour toutes vos boutiques préférées.</p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3">
+        <button onclick="switchView('client')" class="w-full py-4 px-5 rounded-2xl bg-slate-900 text-white font-semibold text-left flex items-center justify-between shadow-lg shadow-slate-900/10 active:scale-[0.99] transition">
+          <div>
+            <div class="text-base font-bold">Accéder à ma carte Wallet</div>
+            <div class="text-xs text-slate-300 font-normal">Afficher mon QR code & mes récompenses</div>
+          </div>
+          <span class="text-xl">→</span>
+        </button>
+
+        <button onclick="switchView('merchant')" class="w-full py-4 px-5 rounded-2xl bg-white border border-slate-200 text-slate-900 font-semibold text-left flex items-center justify-between shadow-sm active:scale-[0.99] transition">
+          <div>
+            <div class="text-base font-bold">Espace Commerçant</div>
+            <div class="text-xs text-slate-500 font-normal">Scanner un client & gérer ma boutique</div>
+          </div>
+          <span class="text-xl text-slate-400">→</span>
+        </button>
+      </div>
+
+      <!-- TARIFS -->
+      <div class="pt-4 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-slate-900">Tarifs Commerçants</h2>
+          <div class="inline-flex bg-slate-200/80 p-1 rounded-xl text-xs font-semibold">
+            <button id="toggle-monthly" onclick="setBilling('monthly')" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-sm transition">Mensuel</button>
+            <button id="toggle-annual" onclick="setBilling('annual')" class="px-2.5 py-1 rounded-lg text-slate-600 transition">Annuel (-17%)</button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <!-- Offre 1 Boutique -->
+          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-bold text-slate-900">1 Boutique</h3>
+                <p id="trial-single" class="text-xs text-emerald-600 font-semibold">14 jours d'essai gratuit</p>
+              </div>
+              <div class="text-right">
+                <span id="price-single" class="text-2xl font-extrabold text-slate-900">9,99 €</span>
+                <span id="period-single" class="text-xs text-slate-500">/mois</span>
+              </div>
+            </div>
+            <ul class="text-xs text-slate-600 space-y-1.5">
+              <li>✓ Carte Wallet digitale & QR code illimités</li>
+              <li>✓ Scanner caisse depuis smartphone ou tablette</li>
+              <li>✓ Paliers de récompenses personnalisables</li>
+            </ul>
+            <a id="link-single" href="https://buy.stripe.com/test_9B65kF8WHfRQ2QE5iMcfK08" target="_blank" class="block w-full text-center py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition">
+              Démarrer mon essai gratuit
+            </a>
+          </div>
+
+          <!-- Offre Multi-Boutiques -->
+          <div class="bg-white rounded-2xl p-5 border-2 border-indigo-600 shadow-sm space-y-3 relative">
+            <span class="absolute -top-2.5 right-4 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">Recommandé</span>
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-bold text-slate-900">Multi-Boutiques</h3>
+                <p id="trial-multi" class="text-xs text-emerald-600 font-semibold">14 jours d'essai gratuit</p>
+              </div>
+              <div class="text-right">
+                <span id="price-multi" class="text-2xl font-extrabold text-slate-900">14,99 €</span>
+                <span id="period-multi" class="text-xs text-slate-500">/mois</span>
+              </div>
+            </div>
+            <ul class="text-xs text-slate-600 space-y-1.5">
+              <li>✓ Points partagés sur tous vos points de vente</li>
+              <li>✓ Accès caisse multi-employés simultané</li>
+              <li>✓ Statistiques consolidées par établissement</li>
+            </ul>
+            <a id="link-multi" href="https://buy.stripe.com/test_dRmdRb6OzcFE9f29z2cfK07" target="_blank" class="block w-full text-center py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition">
+              Démarrer mon essai gratuit
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VUE CLIENT (WALLET) ==================== -->
+    <section id="view-client" class="hidden-view space-y-5">
+      <!-- Connexion / Identification Client -->
+      <div id="client-auth-box" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-lg font-extrabold text-slate-900">Ma Carte Wallet</h2>
+          <p class="text-xs text-slate-500">Entrez votre adresse e-mail pour afficher votre pass fidélité instantanément.</p>
+        </div>
+        <div class="space-y-2.5">
+          <input id="client-email-input" type="email" placeholder="votre@email.com" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          <button onclick="loginClient()" class="w-full py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition">
+            Ouvrir ma carte
+          </button>
+        </div>
+      </div>
+
+      <!-- Pass Wallet Actif -->
+      <div id="client-wallet-box" class="hidden-view space-y-5">
+        <div class="wallet-card relative overflow-hidden rounded-3xl p-6 text-white">
+          <div class="wallet-shimmer absolute inset-0 pointer-events-none"></div>
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <div class="text-[11px] uppercase tracking-widest text-slate-400 font-semibold">Pass Fidélité</div>
+              <div id="wallet-shop-name" class="text-xl font-extrabold tracking-tight mt-0.5">ShopBoost Network</div>
+            </div>
+            <div class="text-right">
+              <div class="text-[11px] uppercase tracking-widest text-slate-400 font-semibold">Solde</div>
+              <div class="text-2xl font-black text-emerald-400"><span id="wallet-points">0</span> <span class="text-xs font-semibold text-white">pts</span></div>
+            </div>
+          </div>
+
+          <div class="bg-white p-3.5 rounded-2xl w-fit mx-auto shadow-inner">
+            <div id="client-qrcode"></div>
+          </div>
+          <p id="wallet-email-label" class="text-center text-xs text-slate-300 mt-4 font-medium"></p>
+        </div>
+
+        <!-- Paliers de récompenses -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+          <div class="flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-900">Vos paliers de récompenses</h3>
+            <button onclick="refreshClientPoints()" class="text-xs font-semibold text-indigo-600">Actualiser</button>
+          </div>
+          <div id="rewards-list" class="space-y-2 text-xs"></div>
+        </div>
+
+        <button onclick="logoutClient()" class="w-full py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800">
+          Changer d'adresse e-mail
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== VUE COMMERÇANT ==================== -->
+    <section id="view-merchant" class="hidden-view space-y-5">
+      <!-- Connexion Commerçant -->
+      <div id="merchant-auth-box" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-lg font-extrabold text-slate-900">Espace Commerçant</h2>
+          <p class="text-xs text-slate-500">Connectez-vous ou créez votre boutique en 10 secondes.</p>
+        </div>
+        <div class="space-y-2.5">
+          <input id="merchant-email-input" type="email" placeholder="email@boutique.fr" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          <input id="merchant-name-input" type="text" placeholder="Nom de votre boutique (si 1ère connexion)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          <button onclick="loginMerchant()" class="w-full py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition">
+            Accéder à ma caisse
+          </button>
+        </div>
+      </div>
+
+      <!-- Tableau de bord Caisse -->
+      <div id="merchant-dashboard-box" class="hidden-view space-y-4">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-500">Boutique active</div>
+            <div id="dash-shop-name" class="font-extrabold text-slate-900 text-base">Ma Boutique</div>
+          </div>
+          <span id="dash-sub-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">Essai / Non activé</span>
+        </div>
+
+        <!-- Encart Abonnement si non activé -->
+        <div id="merchant-paywall" class="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 space-y-3">
+          <div class="text-xs text-indigo-950 font-semibold">Activez votre essai gratuit (14j mensuel ou 30j annuel) pour débloquer l'encaissement illimité :</div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <a href="https://buy.stripe.com/test_9B65kF8WHfRQ2QE5iMcfK08" target="_blank" class="py-2 px-3 rounded-xl bg-white border border-indigo-200 text-center font-bold text-slate-900">1 Boutique<br/><span class="text-indigo-600">9,99 €/mois</span></a>
+            <a href="https://buy.stripe.com/test_3cIcN7b4PeNM62Q4eIcfK06" target="_blank" class="py-2 px-3 rounded-xl bg-white border border-indigo-200 text-center font-bold text-slate-900">1 Boutique<br/><span class="text-indigo-600">99 €/an</span></a>
+            <a href="https://buy.stripe.com/test_dRmdRb6OzcFE9f29z2cfK07" target="_blank" class="py-2 px-3 rounded-xl bg-white border border-indigo-200 text-center font-bold text-slate-900">Multi-Boutiques<br/><span class="text-indigo-600">14,99 €/mois</span></a>
+            <a href="https://buy.stripe.com/test_6oU28t5KveNM0IwcLecfK05" target="_blank" class="py-2 px-3 rounded-xl bg-white border border-indigo-200 text-center font-bold text-slate-900">Multi-Boutiques<br/><span class="text-indigo-600">149 €/an</span></a>
+          </div>
+        </div>
+
+        <!-- Scanner QR & Encaissement -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm">Créditer un client</h3>
+            <button id="btn-toggle-scan" onclick="toggleScanner()" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold">
+              Ouvrir la caméra
+            </button>
+          </div>
+
+          <div id="qr-reader" class="hidden-view rounded-xl overflow-hidden border border-slate-200"></div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Client (scanné ou saisi)</label>
+              <input id="scan-client-email" type="email" placeholder="client@email.com" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Montant de l'achat (€)</label>
+              <input id="purchase-amount" type="number" step="0.01" min="0" oninput="previewPoints()" placeholder="Ex: 12.50" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold" />
+              <p class="text-[11px] text-slate-500 mt-1">Conversion automatique (arrondi à 0,50 €) : <strong id="points-preview" class="text-emerald-600">0 point</strong></p>
+            </div>
+
+            <button onclick="addPointsToClient()" class="w-full py-3.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition shadow-sm">
+              Valider & Créditer les points
+            </button>
+          </div>
+        </div>
+
+        <button onclick="logoutMerchant()" class="w-full py-2 text-xs font-semibold text-slate-500">Déconnexion commerçant</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ==================== CONFIGURATION SUPABASE & STRIPE ====================
+    const SUPABASE_URL = 'https://prdbfryilqhtcrojpoht.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_mZj9GYBc8IJkfaiW3JTmsQ_ZvmCCmKd';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const STRIPE_LINKS = {
+      single_monthly: 'https://buy.stripe.com/test_9B65kF8WHfRQ2QE5iMcfK08',
+      single_annual: 'https://buy.stripe.com/test_3cIcN7b4PeNM62Q4eIcfK06',
+      multi_monthly: 'https://buy.stripe.com/test_dRmdRb6OzcFE9f29z2cfK07',
+      multi_annual: 'https://buy.stripe.com/test_6oU28t5KveNM0IwcLecfK05'
+    };
+
+    let currentShop = null;
+    let currentClientEmail = null;
+    let html5QrCode = null;
+
+    // ==================== NAVIGATION ====================
+    function switchView(view) {
+      ['home', 'client', 'merchant'].forEach(v => {
+        document.getElementById('view-' + v).classList.add('hidden-view');
+      });
+      document.getElementById('view-' + view).classList.remove('hidden-view');
+
+      const navClient = document.getElementById('nav-client');
+      const navMerchant = document.getElementById('nav-merchant');
+      if (view === 'client') {
+        navClient.className = 'px-3 py-1.5 rounded-lg transition bg-white text-slate-900 shadow-sm';
+        navMerchant.className = 'px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900';
+      } else if (view === 'merchant') {
+        navMerchant.className = 'px-3 py-1.5 rounded-lg transition bg-white text-slate-900 shadow-sm';
+        navClient.className = 'px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900';
+      }
+    }
+
+    // ==================== TOGGLE TARIFS MENSUEL / ANNUEL ====================
+    function setBilling(mode) {
+      const btnM = document.getElementById('toggle-monthly');
+      const btnA = document.getElementById('toggle-annual');
+      if (mode === 'monthly') {
+        btnM.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-sm transition';
+        btnA.className = 'px-2.5 py-1 rounded-lg text-slate-600 transition';
+        document.getElementById('price-single').textContent = '9,99 €';
+        document.getElementById('period-single').textContent = '/mois';
+        document.getElementById('trial-single').textContent = "14 jours d'essai gratuit";
+        document.getElementById('link-single').href = STRIPE_LINKS.single_monthly;
+
+        document.getElementById('price-multi').textContent = '14,99 €';
+        document.getElementById('period-multi').textContent = '/mois';
+        document.getElementById('trial-multi').textContent = "14 jours d'essai gratuit";
+        document.getElementById('link-multi').href = STRIPE_LINKS.multi_monthly;
+      } else {
+        btnA.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-sm transition';
+        btnM.className = 'px-2.5 py-1 rounded-lg text-slate-600 transition';
+        document.getElementById('price-single').textContent = '99 €';
+        document.getElementById('period-single').textContent = '/an';
+        document.getElementById('trial-single').textContent = "30 jours d'essai gratuit";
+        document.getElementById('link-single').href = STRIPE_LINKS.single_annual;
+
+        document.getElementById('price-multi').textContent = '149 €';
+        document.getElementById('period-multi').textContent = '/an';
+        document.getElementById('trial-multi').textContent = "30 jours d'essai gratuit";
+        document.getElementById('link-multi').href = STRIPE_LINKS.multi_annual;
+      }
+    }
+
+    // ==================== LOGIQUE CLIENT (WALLET) ====================
+    async function loginClient() {
+      const email = document.getElementById('client-email-input').value.trim().toLowerCase();
+      if (!email || !email.includes('@')) return alert('Veuillez entrer une adresse e-mail valide.');
+      currentClientEmail = email;
+      localStorage.setItem('sb_client_email', email);
+
+      document.getElementById('client-auth-box').classList.add('hidden-view');
+      document.getElementById('client-wallet-box').classList.remove('hidden-view');
+      document.getElementById('wallet-email-label').textContent = email;
+
+      const qrContainer = document.getElementById('client-qrcode');
+      qrContainer.innerHTML = '';
+      new QRCode(qrContainer, {
+        text: email,
+        width: 170,
+        height: 170,
+        colorDark: '#0f172a',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      await refreshClientPoints();
+    }
+
+    async function refreshClientPoints() {
+      if (!currentClientEmail) return;
+      const { data, error } = await db
+        .from('customer_cards')
+        .select('points, shops(name, rewards)')
+        .eq('customer_email', currentClientEmail);
+
+      let totalPoints = 0;
+      let rewards = ['Café offert', 'Boisson fraîche', "-20% sur l'addition", 'Article offert'];
+      let shopTitle = 'ShopBoost Pass';
+
+      if (data && data.length > 0) {
+        totalPoints = data.reduce((sum, row) => sum + (row.points || 0), 0);
+        if (data[0].shops) {
+          shopTitle = data.length > 1 ? `Réseau (${data.length} boutiques)` : data[0].shops.name;
+          if (Array.isArray(data[0].shops.rewards)) rewards = data[0].shops.rewards;
+        }
+      }
+
+      document.getElementById('wallet-points').textContent = totalPoints;
+      document.getElementById('wallet-shop-name').textContent = shopTitle;
+
+      const thresholds = [25, 50, 100, 150];
+      const listEl = document.getElementById('rewards-list');
+      listEl.innerHTML = rewards.map((label, i) => {
+        const req = thresholds[i] || (i + 1) * 30;
+        const unlocked = totalPoints >= req;
+        return `
+          <div class="flex items-center justify-between p-2.5 rounded-xl border ${unlocked ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600'}">
+            <span class="font-semibold">${label}</span>
+            <span class="font-bold ${unlocked ? 'text-emerald-600' : 'text-slate-400'}">${unlocked ? 'Débloqué ✓' : req + ' pts'}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function logoutClient() {
+      localStorage.removeItem('sb_client_email');
+      currentClientEmail = null;
+      document.getElementById('client-wallet-box').classList.add('hidden-view');
+      document.getElementById('client-auth-box').classList.remove('hidden-view');
+    }
+
+    // ==================== LOGIQUE COMMERÇANT ====================
+    async function loginMerchant() {
+      const email = document.getElementById('merchant-email-input').value.trim().toLowerCase();
+      const nameInput = document.getElementById('merchant-name-input').value.trim();
+      if (!email || !email.includes('@')) return alert('Veuillez entrer votre e-mail commerçant.');
+
+      let { data: shop } = await db.from('shops').select('*').eq('owner_email', email).maybeSingle();
+
+      if (!shop) {
+        const shopName = nameInput || 'Ma Boutique';
+        const { data: created, error } = await db
+          .from('shops')
+          .insert([{ owner_email: email, name: shopName }])
+          .select()
+          .single();
+        if (error) return alert('Erreur lors de la création de la boutique : ' + error.message);
+        shop = created;
+      }
+
+      // Vérifie si retour depuis Stripe ?payment=success
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('payment') === 'success' && !shop.is_subscribed) {
+        const { data: updated } = await db
+          .from('shops')
+          .update({ is_subscribed: true })
+          .eq('id', shop.id)
+          .select()
+          .single();
+        if (updated) shop = updated;
+      }
+
+      currentShop = shop;
+      localStorage.setItem('sb_merchant_email', email);
+      renderMerchantDashboard();
+    }
+
+    function renderMerchantDashboard() {
+      document.getElementById('merchant-auth-box').classList.add('hidden-view');
+      document.getElementById('merchant-dashboard-box').classList.remove('hidden-view');
+      document.getElementById('dash-shop-name').textContent = currentShop.name;
+
+      const badge = document.getElementById('dash-sub-badge');
+      const paywall = document.getElementById('merchant-paywall');
+      if (currentShop.is_subscribed) {
+        badge.textContent = 'Abonnement Actif ✓';
+        badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800';
+        paywall.classList.add('hidden-view');
+      } else {
+        badge.textContent = 'Essai à activer';
+        badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800';
+        paywall.classList.remove('hidden-view');
+      }
+    }
+
+    function previewPoints() {
+      const amount = parseFloat(document.getElementById('purchase-amount').value);
+      const pts = isNaN(amount) || amount < 0 ? 0 : Math.round(amount);
+      document.getElementById('points-preview').textContent = pts + (pts > 1 ? ' points' : ' point');
+    }
+
+    async function addPointsToClient() {
+      if (!currentShop) return;
+      const clientEmail = document.getElementById('scan-client-email').value.trim().toLowerCase();
+      const amount = parseFloat(document.getElementById('purchase-amount').value);
+      const ptsToAdd = Math.round(amount);
+
+      if (!clientEmail || !clientEmail.includes('@')) return alert('Scannez ou saisissez un e-mail client valide.');
+      if (isNaN(ptsToAdd) || ptsToAdd <= 0) return alert('Entrez un montant valide (au moins 0,50 €).');
+
+      const { data: existing } = await db
+        .from('customer_cards')
+        .select('*')
+        .eq('shop_id', currentShop.id)
+        .eq('customer_email', clientEmail)
+        .maybeSingle();
+
+      if (existing) {
+        const newTotal = (existing.points || 0) + ptsToAdd;
+        const { error } = await db
+          .from('customer_cards')
+          .update({ points: newTotal, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+        if (error) return alert('Erreur : ' + error.message);
+        alert(`+${ptsToAdd} points ajoutés à ${clientEmail} (Nouveau solde : ${newTotal} pts)`);
+      } else {
+        const { error } = await db
+          .from('customer_cards')
+          .insert([{ shop_id: currentShop.id, customer_email: clientEmail, points: ptsToAdd }]);
+        if (error) return alert('Erreur : ' + error.message);
+        alert(`Carte créée et +${ptsToAdd} points crédités pour ${clientEmail} !`);
+      }
+
+      document.getElementById('purchase-amount').value = '';
+      previewPoints();
+    }
+
+    async function toggleScanner() {
+      const readerEl = document.getElementById('qr-reader');
+      const btn = document.getElementById('btn-toggle-scan');
+      if (!readerEl.classList.contains('hidden-view')) {
+        if (html5QrCode) await html5QrCode.stop();
+        readerEl.classList.add('hidden-view');
+        btn.textContent = 'Ouvrir la caméra';
+        return;
+      }
+
+      readerEl.classList.remove('hidden-view');
+      btn.textContent = 'Fermer la caméra';
+      html5QrCode = new Html5Qrcode('qr-reader');
+      try {
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          async (decodedText) => {
+            document.getElementById('scan-client-email').value = decodedText.trim();
+            await html5QrCode.stop();
+            readerEl.classList.add('hidden-view');
+            btn.textContent = 'Ouvrir la caméra';
+          }
+        );
+      } catch (err) {
+        alert("Impossible d'accéder à la caméra : " + err);
+        readerEl.classList.add('hidden-view');
+        btn.textContent = 'Ouvrir la caméra';
+      }
+    }
+
+    function logoutMerchant() {
+      localStorage.removeItem('sb_merchant_email');
+      currentShop = null;
+      document.getElementById('merchant-dashboard-box').classList.add('hidden-view');
+      document.getElementById('merchant-auth-box').classList.remove('hidden-view');
+    }
+
+    // ==================== INITIALISATION AU CHARGEMENT ====================
+    window.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('payment') === 'success') {
+        document.getElementById('payment-banner').classList.remove('hidden-view');
+        switchView('merchant');
+      }
+
+      const savedMerchant = localStorage.getItem('sb_merchant_email');
+      if (savedMerchant) {
+        document.getElementById('merchant-email-input').value = savedMerchant;
+        await loginMerchant();
+      }
+
+      const savedClient = localStorage.getItem('sb_client_email');
+      if (savedClient) {
+        document.getElementById('client-email-input').value = savedClient;
+      }
+    });
+  </script>
+</body>
+</html>
